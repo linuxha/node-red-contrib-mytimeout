@@ -1,0 +1,101 @@
+<!--
+	Mostly - apart from the Sunrise module on which this depends
+	this is copyright (c) Peter Scargill - but as I've had so
+	many ideas from others - consider it free to use for whatever
+	purpose you like. If you redesign it please remember to drop
+	my name and link in there somewhere. https://tech.scargill.net
+	This software puts out one of two messages on change of state 
+    which could be sent to the MQTT node and can be triggered by
+    the INJECT module (should be triggered once every minute)
+-->
+
+<script type="text/x-red" data-template-name="timeout">
+
+     <div class="form-row">
+		<label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+		<input type="text" id="node-input-name" placeholder="Name">
+     </div>
+	 
+ <div class="form-row">
+    <label for="node-input-outtopic"><i class="fa fa-tag"></i> Output Topic</label>
+    <input style="width:70%" type="text" id="node-input-outtopic" placeholder="topic">
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-outsafe"><i class="fa fa-tag"></i> Timer On payload</label>
+    <input style="width:70%" type="text" id="node-input-outsafe" placeholder="safe">
+  </div>
+
+  <div class="form-row">
+    <label for="node-input-outwarning"><i class="fa fa-tag"></i> Warning state payload</label>
+    <input style="width:70%" type="text" id="node-input-outwarning" placeholder="warning">
+  </div>
+
+    <div class="form-row">
+    <label for="node-input-outunsafe"><i class="fa fa-tag"></i> Timer Off payload</label>
+    <input style="width:70%" type="text" id="node-input-outunsafe" placeholder="unsafe">
+  </div>
+
+ <div class="form-row">
+    <label for="node-input-warning"><i class="fa fa-clock-o"></i> Warning (secs)</label>
+    <input style="width:15%" type="text" id="node-input-warning" placeholder="5">
+  </div>
+  
+ <div class="form-row">
+    <label for="node-input-timer"><i class="fa fa-clock-o"></i> Countdown (secs)</label>
+    <input style="width:15%" type="text" id="node-input-timer" placeholder="30">
+  </div>
+
+  	<div>
+		<span style="width: 350px; float: left; margin-left: 5px;"><input type="checkbox" id="node-input-repeat" placeholder="repeat" > Repeat message every second</span>
+		<br/><br/>
+	</div>
+
+  	<div>
+		<span style="width: 350px; float: left; margin-left: 5px;"><input type="checkbox" id="node-input-again" placeholder="again" > Auto-restart when timed out</span>
+		<br/><br/>
+	</div>	
+	
+  	<div>
+		<span style="width: 350px; float: left; margin-left: 5px;"><input type="checkbox" id="node-input-atStart" placeholder="atStart" > Run at start</span>
+		<br/><br/>
+	</div>
+</script>
+
+<script type="text/x-red" data-help-name="timeout">
+    <h3>Timeout</h3>
+    <p>A simple timout... on start it sends out the SAFE message - then nothing as long as it is 
+	kept topped up by input. If the counter counts down to the warning level it outputs the WARNING message.
+	If it times out - the UNSAFE message is sent out. Can also be used as a simply output toggle.</p>
+</script>
+
+<script type="text/javascript">
+    RED.nodes.registerType('timeout',{
+        category: 'scargill',
+        color:"#ff66cc",
+        inputLabels: "Any old input resets the timer",
+        outputLabels: "Output message depends on state",
+        defaults: {
+			name: { value:"My Timeout" },
+			outtopic: {value: "" },
+			outsafe: { value:"Safe" },
+			outwarning: { value: "Warning" },
+			outunsafe: { value:"Unsafe" },
+			warning: { value: "5" },
+			timer: { value:"30" },
+			repeat: {value:false},
+			again: {value:false}
+        },
+        inputs:1,
+        outputs:1,
+        icon: "stopwatch.png",
+        label: function() {
+            return this.name||"timeout";
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        oneditprepare: function() {}
+      
+    });
+</script>
