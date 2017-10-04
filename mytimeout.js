@@ -47,6 +47,8 @@ module.exports = function(RED) {
 	node.again     = n.again;
 	node.atStart   = n.atStart;
 
+	// This is currently cleared by a setTimeout
+	// I really wonder if I need this, for now it stays
 	function clrLastPayloadFlag() {
 	    lastPayload = '';
 	}
@@ -59,6 +61,7 @@ module.exports = function(RED) {
 		changed = 1;
 	    }
 	}
+
 	node.on(
 	    "input",
 	    function(inmsg) {
@@ -73,6 +76,8 @@ module.exports = function(RED) {
 			return ;
 		    }
 
+		    // Temporary code until I'm done testing
+		    // Limits runaway, if it occurs
 		    if(dbgCount > 10) {
 			if(inmsg.payload == 'clear') {
 			    node.log("1 TO: dbgCount cleared");
@@ -133,12 +138,19 @@ module.exports = function(RED) {
 			//   "warning": nn
 			// }
 			switch(inmsg.payload.payload) {
+			    case 1:
+			    case "1":
+			    case "On":
 			    case "on":
 			        node.log("9 TO: " + inmsg.payload.timer)||node.timer;
 			        oldTimeout = timeout;
 			        // We need to check for a valid timer and warning value
 			        timeout = timedown = inmsg.payload.timer||node.timer;
 			        break;
+
+			    case 0:
+			    case "0":
+			    case "Off":
 			    case "off":
 			        if(timedown == 0) {
 				    changed = 1; // It's already stopped
@@ -147,13 +159,21 @@ module.exports = function(RED) {
 			        timedown = 0;
 			        changed  = 0;
 			        break;
+
+			    case "Cancel":
 			    case "cancel":
+			        // Stop or cancel the whole thing (don't turn anything off)
+			        timedown = 0;
+			        changed  = 1; // causes nothing to be sent
+			        break;
+
+			    case "Stop":
 			    case "stop":
 			        // Stop or cancel the whole thing (don't turn anything off)
 			        timedown = 0;
-			        //changed  = 1; //This says nothing
-			        changed  = 3; // hopefully this will say stop
+			        changed  = 3; // causes the stop message to be sent
 			        break;
+
 			    default:
 			        // Oops, don't know what happened
 			        node.log("A TO: unknown payload.paylaod" + inmsg.payload.payload);
