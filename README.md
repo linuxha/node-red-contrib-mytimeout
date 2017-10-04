@@ -16,6 +16,7 @@ You can configure the timeout module with the settings for the Safe and Unsafe m
 
 * [ ] Repeat message every second
 * [ ] Auto-restart when timed out
+* [ ] Run at start
 
 All of this is very useful for things like lights that are motion activated. If motion is detected, the Safe payload is sent (On or 1). The timer can be started when motion is detected and as long as the motion continues there will be no timeout. When the timeout occurs the Unsafe payload is sent (Off or 0). When the timeout warning time (n seconds before the timeout).
 
@@ -35,6 +36,10 @@ My additions to the code allows the user to send JSON in the triggers. You can o
 
 {
     "payload": "stop"
+}
+
+{
+    "payload": "cancel"
 }
 ```
 
