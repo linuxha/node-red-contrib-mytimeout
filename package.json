@@ -1,89 +1,25 @@
 {
-  "_args": [
-    [
-      {
-        "raw": "node-red-contrib-mytimeout@~1.0.5",
-        "scope": null,
-        "escapedName": "node-red-contrib-mytimeout",
-        "name": "node-red-contrib-mytimeout",
-        "rawSpec": "~1.0.5",
-        "spec": ">=1.0.5 <1.1.0",
-        "type": "range"
-      },
-      "/home/njc/.node-red"
-    ]
-  ],
-  "_from": "node-red-contrib-mytimeout@>=1.0.5 <1.1.0",
-  "_id": "node-red-contrib-mytimeout@1.0.5",
-  "_inCache": true,
-  "_location": "/node-red-contrib-mytimeout",
-  "_nodeVersion": "5.12.0",
-  "_npmOperationalInternal": {
-    "host": "s3://npm-registry-packages",
-    "tmp": "tmp/node-red-contrib-mytimeout-1.0.5.tgz_1502381544160_0.5436455584131181"
+  "name": "mytimeout",
+  "version": "1.0.1",
+  "description": "A timer that support setting the run time by passing JSON to the input"
+  "main": "mytimeout.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "_npmUser": {
-    "name": "scargill",
-    "email": "pete@scargill.org"
-  },
-  "_npmVersion": "3.8.6",
-  "_phantomChildren": {},
-  "_requested": {
-    "raw": "node-red-contrib-mytimeout@~1.0.5",
-    "scope": null,
-    "escapedName": "node-red-contrib-mytimeout",
-    "name": "node-red-contrib-mytimeout",
-    "rawSpec": "~1.0.5",
-    "spec": ">=1.0.5 <1.1.0",
-    "type": "range"
-  },
-  "_requiredBy": [
-    "#USER",
-    "/"
-  ],
-  "_resolved": "https://registry.npmjs.org/node-red-contrib-mytimeout/-/node-red-contrib-mytimeout-1.0.5.tgz",
-  "_shasum": "5b3eeb9d4743555afb3ebc10d8866c185fe56ac4",
-  "_shrinkwrap": null,
-  "_spec": "node-red-contrib-mytimeout@~1.0.5",
-  "_where": "/home/njc/.node-red",
-  "author": {
-    "name": "Peter Scargill",
-    "email": "pete@scargill.org",
-    "url": "https://tech.scargill.net"
-  },
-  "dependencies": {},
-  "description": "A simple mytimeout node which can also be used as a toggle for testing.",
-  "devDependencies": {},
-  "directories": {},
-  "dist": {
-    "shasum": "5b3eeb9d4743555afb3ebc10d8866c185fe56ac4",
-    "tarball": "https://registry.npmjs.org/node-red-contrib-mytimeout/-/node-red-contrib-mytimeout-1.0.5.tgz"
-  },
-  "homepage": "https://tech.scargill.net/",
-  "keywords": [
-    "node-red",
-    "mytimeout",
-    "time-out",
-    "scargill"
-  ],
-  "license": "MIT",
-  "maintainers": [
-    {
-      "name": "scargill",
-      "email": "pete@scargill.org"
-    }
-  ],
-  "name": "node-red-contrib-mytimeout",
-  "node-red": {
-    "nodes": {
-      "mytimeout": "mytimeout.js"
-    }
-  },
-  "optionalDependencies": {},
-  "readme": "ERROR: No README data found!",
   "repository": {
-    "private": true
+    "type": "git",
+    "url": "git+https://github.com/linuxha/node-red-contrib-mytimeout.git"
   },
-  "scripts": {},
-  "version": "1.0.5"
+  "keywords": [
+    "timer",
+    "timeout",
+    "scargill",
+    "cherry"
+  ],
+  "author": "Neil Cherry",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/linuxha/node-red-contrib-mytimeout/issues"
+  },
+  "homepage": "https://github.com/linuxha/node-red-contrib-mytimeout#readme"
 }
