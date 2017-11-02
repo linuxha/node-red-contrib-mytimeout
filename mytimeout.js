@@ -16,7 +16,6 @@ module.exports = function (RED) {
 
 
     function myTimeoutNode(n) {
-	this.log("function mytimeout");
         var timeout     = 30;
         var oldTimeout  = 30;
         var timedown    = 0;    // was 30
@@ -50,6 +49,7 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, n);
 
         var node = this;
+	node.log("function mytimeout");
 
         // GUI variables
         node.timer     = n.timer;
