@@ -14,6 +14,8 @@
 module.exports = function (RED) {
     "use strict";
 
+
+    node.log("function mytimeout");
     function myTimeoutNode(n) {
         var timeout     = 30;
         var oldTimeout  = 30;
@@ -495,5 +497,6 @@ module.exports = function (RED) {
         });
 
     } // function myTimeoutNode(n)
+    node.log("Registering mytimeout");
     RED.nodes.registerType("mytimeout", myTimeoutNode);
 };
