@@ -497,6 +497,6 @@ module.exports = function (RED) {
         });
 
     } // function myTimeoutNode(n)
-    node.log("Registering mytimeout");
+
     RED.nodes.registerType("mytimeout", myTimeoutNode);
 };
