@@ -18,6 +18,11 @@
   "bugs": {
     "url": "https://github.com/linuxha/node-red-contrib-mytimeout/issues"
   },
+  "node-red": {
+    "nodes": {
+      "mytimeout": "mytimeout.js"
+    }
+  },
   "repository": {
     "private": true,
     "type": "git",
