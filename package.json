@@ -19,6 +19,7 @@
     "url": "https://github.com/linuxha/node-red-contrib-mytimeout/issues"
   },
   "repository": {
+    "private": true,
     "type": "git",
     "url": "git+https://github.com/linuxha/node-red-contrib-mytimeout.git"
   },
