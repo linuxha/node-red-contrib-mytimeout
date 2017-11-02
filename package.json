@@ -4,7 +4,9 @@
   "description": "A timer that supports setting the run time by passing JSON to the input",
   "main": "mytimeout.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node ./test/test.js",
+    "mytestA": "node -e \"t = require('./mytimeout.js');\"",
+    "mytestB": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "timer",
