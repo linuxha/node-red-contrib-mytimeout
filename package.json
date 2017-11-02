@@ -1,7 +1,7 @@
 {
-  "name": "mytimeout",
+  "name": "node-red-contrib-mytimeout",
   "version": "1.0.2",
-  "description": "A timer that support setting the run time by passing JSON to the input",
+  "description": "A timer that supports setting the run time by passing JSON to the input",
   "main": "mytimeout.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
