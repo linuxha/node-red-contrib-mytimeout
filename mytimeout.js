@@ -15,7 +15,7 @@ module.exports = function (RED) {
     "use strict";
 
 
-    node.log("function mytimeout");
+    this.log("function mytimeout");
     function myTimeoutNode(n) {
         var timeout     = 30;
         var oldTimeout  = 30;
