@@ -184,7 +184,7 @@ module.exports = function (RED) {
                             if(inmsg.payload.warning === undefined) {
                                 inmsg.payload.warning = node.warning;
                             }
-                        } /*catch(e) {
+                        } catch(e) {
                             // Okay, now what do we do?
                         } /* */
                     }
