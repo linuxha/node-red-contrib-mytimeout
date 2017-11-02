@@ -1,25 +1,24 @@
 {
   "name": "mytimeout",
   "version": "1.0.1",
-  "description": "A timer that support setting the run time by passing JSON to the input"
+  "description": "A timer that support setting the run time by passing JSON to the input",
   "main": "mytimeout.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/linuxha/node-red-contrib-mytimeout.git"
-  },
   "keywords": [
     "timer",
-    "timeout",
-    "scargill",
+    "mytimeout",
     "cherry"
   ],
   "author": "Neil Cherry",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/linuxha/node-red-contrib-mytimeout/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/linuxha/node-red-contrib-mytimeout.git"
   },
   "homepage": "https://github.com/linuxha/node-red-contrib-mytimeout#readme"
 }
