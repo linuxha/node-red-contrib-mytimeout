@@ -13,6 +13,8 @@
 
 // I'd like to add debugging and have the debugging tell me it's on
 // I'd turn it on with a special message msg.debug = true
+// I also really need to work on this code, it should be a state engine and not
+// this willy-nilly coding. 20180424 ncherry@linuxha.com
 
 module.exports = function (RED) {
     "use strict";
