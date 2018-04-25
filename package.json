@@ -9,8 +9,11 @@
     "mytestB": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
+    "node-red",
+    "count down timer",
     "timer",
     "mytimeout",
+    "timeout",
     "cherry"
   ],
   "author": "Neil Cherry",
