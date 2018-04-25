@@ -11,17 +11,19 @@
 // @FIXED: the node-status doesn't change from Yellow to Green ...
 // when I send an on during the warning
 
+// I'd like to add debugging and have the debugging tell me it's on
+// I'd turn it on with a special message msg.debug = true
+
 module.exports = function (RED) {
     "use strict";
-
 
     function myTimeoutNode(n) {
         var timeout     = 30;
         var oldTimeout  = 30;
         var timedown    = 0;    // was 30
         var warning     = 12;
-        //var oldWarning  = 12;
         var lastPayload = "";
+	var debugging   = false;
         var dbgCount    = 0;    // This is temporary to make sure we don't have a runaway process
 
         var state = {
@@ -49,7 +51,6 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, n);
 
         var node = this;
-	node.log("function mytimeout");
 
         // GUI variables
         node.timer     = n.timer;
@@ -100,7 +101,8 @@ module.exports = function (RED) {
         // TOPIC B is the topic used to send JSON formatted message (my devices
         // don't need to see this)
         node.on( "input", function(inmsg) {
-            // Limits runaway, if it occurs
+            // Limits runaway, if it occurs (for testing)
+	    // msg.debug = 1 then turn on debugging messages
             if(false && (dbgCount > 15)) {
                 if(inmsg.payload === "clear") {
                     node.log("1 TO: dbgCount cleared");
@@ -234,7 +236,6 @@ module.exports = function (RED) {
                         //node.log("7aTO: " + inmsg.payload.timer + ", " + JSON.stringify(inmsg.payload));
 
                         oldTimeout = timeout;
-                        //oldWarning = warning;
                         // We need to check for a valid timer and warning value
                         timeout  = inmsg.payload.timer||node.timer;
                         timedown = timeout;
@@ -285,6 +286,10 @@ module.exports = function (RED) {
                     case "warning":
                         break;
 
+                    case "debug":
+                    case "DEBUG":
+                        break;
+
                     default:
                         // Oops, don't know what happened
                         node.log("? TO: unknown payload.payload " + inmsg.payload.payload);
@@ -303,7 +308,6 @@ module.exports = function (RED) {
                         node.log("7 TO: " + inmsg.payload.timer + ", " + JSON.stringify(inmsg.payload));
 
                         oldTimeout = timeout;
-                        //oldWarning = warning;
                         // We need to check for a valid timer and warning value
                         timeout  = inmsg.payload.timer||node.timer;
                         timedown = timeout;
@@ -341,6 +345,10 @@ module.exports = function (RED) {
                     case "Warning":
                     case "warning":
                     case "ignore":
+                        break;
+
+                    case "debug":
+                    case "DEBUG":
                         break;
 
                     //This is anything not handled by the switch
