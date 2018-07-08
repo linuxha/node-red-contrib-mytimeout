@@ -1,503 +1,491 @@
 // Author: Neil Cherry <ncherry@linuxha.com>
-//
-// Derived from Petr Scargill's timeout.js
 
 // I'd be much better off with a state machine
+// https://www.smashingmagazine.com/2018/01/rise-state-machines/
 
-// Initial is TIMEOUT
-// TIMEOUT => COUNTDOWN => WARN => TIMEOUT/STOP/CANCEL/OFF
-// We can return to COUNTDOWN while in WARN
+// the on/off trigger string below whould be user configurable
+//
+// Inputs:
+//  msg.payload = {
+//    "payload": "on",
+//    "timeout": 3600,
+//    "warning": 300
+//  }
+//
+// The above can be used to change the timeout and warning
+//
+// or
+//
+//  {
+//    "payload": "on"
+//  }
+//
+//  {
+//    "payload": <Don't care> 
+//  }
+//
+// The above gets treated as an on condition
+//
+//  {
+//    "payload": "off"
+//  }
+//
+//  {
+//    "payload": "off"
+//  }
+//
+//  {
+//    "payload": "stop"
+//  }
+//
+//  {
+//    "payload": "cancel"
+//  }
+//
+//  {
+//    "payload": "tick"
+//  }
 
-// @FIXED: the node-status doesn't change from Yellow to Green ...
-// when I send an on during the warning
+// Initial is stop
+// STOP => RUN => STOP (via timeout)
 
-// I'd like to add debugging and have the debugging tell me it's on
-// I'd turn it on with a special message msg.debug = true
-// I also really need to work on this code, it should be a state engine and not
-// this willy-nilly coding. 20180424 ncherry@linuxha.com
-
-module.exports = function (RED) {
+module.exports = function(RED) {
     "use strict";
 
-    function myTimeoutNode(n) {
-        var timeout     = 30;
-        var oldTimeout  = 30;
-        var timedown    = 0;    // was 30
-        var warning     = 12;
-        var lastPayload = "";
-	var debugging   = false;
-        var dbgCount    = 0;    // This is temporary to make sure we don't have a runaway process
+    /*
+      node-input-name
+      node-input-outtopic
+      node-input-outsafe
+      node-input-outwarning
+      node-input-warning
+      node-input-timer
+      node-input-limit
+      node-input-repeat
+      node-input-again
+      node-input-atStart
+    */
+    function countdownNode(n) {
+        var wflag       = false;
+        var ticks       = -1;           //
+        var lastPayload = 'not sent';   // 
 
-        var state = {
-            COUNTDOWN:  0,
-            WARNING:    1,
-            TIMEOUT:    2,
-            STOP:       3,
-            OFF:        4,
-            CANCEL:     5,
-            NOTRUNNING: 6
-        };
-        var stateStr = [
-            "COUNTDOWN",
-            "WARNING",
-            "TIMEOUT",
-            "STOP",
-            "OFF",
-            "CANCEL",
-            "NOTRUNNING"
-        ];
-        var current = {
-            state: state.NOTRUNNING
-        };
+        var timeout     = parseInt(n.timer||30);    // 
+        var warn        = parseInt(n.warning||10);  // 
+
+        var dbgCount    = 0;            // This is temporary to make sure we don't have a runaway process
+
+        var line        = {};
+
+        var BUG = 1;
 
         RED.nodes.createNode(this, n);
+
+        // =====================================================================
+        // There can be:
+        // payload = "on" or 1 or "1" or anthing else except off/stop/cancel/debug
+        //
+        // @FIXME: If an on is sent it uses the current ticks (not the initial ticks sent with the message)
+        //
+        function on(msg) {
+            // My intention is to move all the calculations for
+            // these variables to here. At the moment they're all over
+            // the place and confusing
+            node.log("    node.timer: " + node.timer);
+            node.log("    node.warn:  " + node.warn);
+            node.log("    timeout:    " + timeout);
+            node.log("    warn:       " + warn);
+            node.log("    ticks:      " + ticks);
+            if(msg) {
+                // There are 3 sets of variables
+                // default values (node.timer, node.warn)
+                // passed values  (timeout, warn - if any)
+                // running values (ticks)
+                if(typeof(msg) === "object") {
+                    node.log("msg: " + JSON.stringify(msg));
+                    // if the message has msg.timeout
+                    // if the message has msg.warning
+                    if(msg.timeout) {
+                        timeout = msg.timeout;
+                        if(msg.warning) {
+                            warn = msg.warning;
+                        }
+                    }
+                } else {
+                    node.log("msg: " + msg);
+                    //then we should use the defaults
+                    timeout = parseInt(timeout||node.timer);
+                    warn    = parseInt(warn||node.warn);
+                }
+            } else {
+                node.log("No msg");
+                timeout = parseInt(timeout||node.time);
+                warn    = parseInt(warn||node.warn);
+            }
+
+            ticks = timeout;
+
+            node.log("");
+            node.log("    node.timer: " + node.timer);
+            node.log("    node.warn:  " + node.warn);
+            node.log("    timeout:    " + timeout);
+            node.log("    warn:       " + warn);
+            node.log("    ticks:      " + ticks);
+
+            node.log("Count timer on");
+            node.status({
+                fill  : "green",
+                shape : "dot",
+                text  : "Running: " + ticks // provide a visual countdown
+            });
+
+            node.payload = node.outsafe;
+
+            lastPayload = node.payload;
+            node.log("Send green: " + lastPayload);
+            node.send([node, null]);
+
+            state = 'run';
+
+            wflag = false;      // rest the warning flag
+        } // on(msg)
+
+        function off() {
+            node.log("off!");
+            ticks = -1;
+            stop('off');
+        } // off()
+
+        // I'm about to make this a bit complicated
+        // In: off    out: off
+        // In: stop   out: stop
+        // In: cancel out: (nothing)
+        function stop(s) {
+            if(!s) {
+                node.log("Empty stop");
+                s = 'stop';
+            }
+
+            node.log(s + "! A");
+            ticks = 0;
+            state = s;
+
+            node.status({
+                fill  : "red",
+                shape : "dot",
+                text  : "Stopped: " + s // provide a visual countdown
+            });
+
+            // Stop or off can send, not cancel
+            switch(s) {
+                case 'stop':
+                    node.payload = "stop";
+                    lastPayload = node.payload;
+                    node.log("Send red: " + lastPayload);
+
+                    var tremain = { "payload": {"payload": -1, "state": 0, "flag": "stop"}};
+                    node.send([node, tremain]);
+                    break;
+
+                case 'off':
+                    node.payload = node.outunsafe;
+                    lastPayload = node.payload;
+                    node.log("Send red: " + lastPayload);
+
+                    var tremain = { "payload": {"payload": 0, "state": 0, "flag": "off"}};
+                    node.send([node, tremain]);
+                    break;
+
+                case 'cancel':
+                    node.log("Send red: null");
+                    var tremain = { "payload": {"payload": -1, "state": 0, "flag": "cancel"}};
+                    lastPayload = "";
+                    node.send([null, tremain]);
+                    break;
+
+                default:
+                    node.log("Send red: ???");
+                    var tremain = { "payload": {"payload": -1, "state": 0, "flag": "unknown"}};
+                    lastPayload = "";
+                    node.send([null, tremain]);
+                    break;
+            }
+
+            state = 'stop';
+            ticks = -1;
+            timeout = parseInt(node.timer);
+            warn    = parseInt(node.warn);
+        }
+
+        function cancel() {
+            node.log("cancel!");
+            stop('cancel');
+            ticks = -1;
+        }
+
+        function doNothing() {
+            node.log("doNothing!");
+            state = 'stop';
+            ticks = -1;
+        }
+
+        var states = {
+            // Not sure if this is what I want in the long run but this is good for now
+            stop: { on: on, off: off, stop: doNothing, cancel: doNothing }, 
+            run:  { on: on, off: off, stop: stop, cancel: cancel }, 
+        };
+
+        var state = 'stop';
 
         var node = this;
 
         // GUI variables
-        node.timer     = n.timer;
-        node.warn      = n.warning;
-        node.topic     = n.outtopic;
-        node.outsafe   = n.outsafe || "on";
-        node.outwarn   = n.outwarning;
-        node.outunsafe = n.outunsafe || "off";
-        node.repeat    = n.repeat;
-        node.again     = n.again;
-        node.atStart   = n.atStart;
+        node.timer     = parseInt(n.timer)||30;
+        node.state     = 'stop';                // For now it's a string, later an object?
+        /*
+          This is the Edit dialog for this node
+          node properties
+          Name                      Countdown timer
+          Output Topic              topic <- if blank no output topic
+          Timer On payload          on
+          Warning state payload     Warning
+          Timer Off payload         off
+          Warning (secs)            5
+          Countdown (secs)          30
+          Rate Limit (msg/secs)     30
+          [ ] Repeat message every second <- This doesn't seem like a good idea (???)
+          [ ] Auto-restart when timed out
+          [ ] Run at start
 
-        // This is currently cleared by a setTimeout
-        // I really wonder if I need this, for now it stays
-        /* 
-        function clrLastPayloadFlag() {
-            lastPayload = "";
-        }
         */
+        node.name      = n.name;               // node-input-name       - Name
+        node.warn      = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
+        node.topic     = n.outtopic;           // node-input-outtopic   - Output topic
+        node.outsafe   = n.outsafe || "on";    // node-input-outsafe    - Timer on payload
+        node.outwarn   = n.outwarning;         // node-input-outwarning - Warning state payload
+        node.outunsafe = n.outunsafe || "off"; // node-input-outunsafe  - Timer off payload
+        //                                     // node-input-warning    - warning seconds
+        //                                     // node-input-timer      - countdown seconds
+        //                                     // node-input-repeat     - Rate limit seconds
+        node.repeat    = n.repeat;             // node-input-repeat     - Repeat message every second
+        node.again     = n.again;              // node-input-again      - Auto restart when timed out
+        node.atStart   = n.atStart;            // node-input-atStart    - Run at start
 
-        // initialize
-        if (node.timer !== 0) {
-            timeout = parseInt(node.timer);
-            if(node.atStart) {
-                timedown = parseInt(node.timer);
-            }
-        }
-
-        node.status({
-            fill  : "red",
-            shape : "dot",
-            text  : "Not started"
-        });
-
-        // =====================================================================
-        // the above only gets call on start up
-        // once for each node running (so careful using global variables!)
-        // =[ Fini Init code ]==================================================
-
-        // =====================================================================
-        // This gets called each time something is sent to this node
-        // The setInteval runs every 1000 ms (continuously)
-        //               /-<[ UI Timer sw ]>---<[ Function ]>-\
-        // <[ TOPIC A ]>+--------------------------------------+<[ myTimer ]>---<[ TOPIC A ]>
-        // <[ TOPIC B ]>+-------------------------------------/
-        // TOPIC A is the on/off topic for the  UI TIMER sw (switch)
-        // TOPIC A also publish to the device topics (not shown)
-        // TOPIC B is the topic used to send JSON formatted message (my devices
-        // don't need to see this)
-        node.on( "input", function(inmsg) {
-            // Limits runaway, if it occurs (for testing)
-	    // msg.debug = 1 then turn on debugging messages
-            if(false && (dbgCount > 15)) {
-                if(inmsg.payload === "clear") {
-                    node.log("1 TO: dbgCount cleared");
-                    dbgCount = 0;
-
-                    current.state = state.NOTRUNNING;
-
-                    node.log("Cleared: " + dbgCount);
-                    return ; //
-                } else {
-                    if(typeof(inmsg.payload) === "object") {
-                        node.log("3 TO: dbgCount exceeded obj(" + JSON.stringify(inmsg.payload) + ")");
-                    } else {
-                        node.log("3 TO: dbgCount exceeded " + dbgCount + " str(" + inmsg.payload + ")");
-                    }
-
-                    if(dbgCount < 17) {
-                        node.payload = undefined;
-                        node.status({
-                            fill  : "grey",
-                            shape : "dot",
-                            text  : "Count exceeded"
-                        });
-                    } else {
-                        if(dbgCount < 18) {
-                            dbgCount = dbgCount + 1; // ++dbgCount;
-                        }
-                    }
-
-                    //node.send(node);
-                    return ; // this doesn't seem to work
-                }
-            }
-            // At this poing we can see the following:
-            // msg.payload = "TIMINGXX" (timer tick), special handling
-            // msg.payload = JSON string (not yet an obj), special handling
-            //               sent via the mosquitto_pub cmd
-            // msg.payload = object,  special handling
-            //               sent via something like the 
-            // msg.payload = * - any string, tickles the timer to restart
-            if (inmsg.payload !== "TIMINGXX") {
-                /* / Timer turns the 
-                if(typeof(inmsg.payload) === "object") {
-                    node.log("2 TO: HEY!");
-                    node.log("2 TO: HEY! node.on inmsg.payload is: " + typeof(inmsg.payload));
-                    inmsg.payload = JSON.stringify(inmsg.payload);
-                    node.log("2 TO: HEY! " + inmsg.payload);
-                }
-                // */
-                // =========================================================
-                // Temporary code until I'm done testing
-                //dbgCount++;
-
-                // =========================================================
-
-                // =========================================================
-                // Okay here's what I expect, user sends something (anything)
-                // node send node.outsafe,
-                // if node sees the exact string node.outstring just sent
-                // then drop it
-                // If the timer goes off then the lastPayload should be cleared
-                if(typeof(inmsg.payload) === "string") {
-                    // this helps ignore message I just sent out
-                    if(lastPayload !== "") {
-                        if(lastPayload === inmsg.payload) {
-                            node.log("4 TO: In == Out match, skip (" + lastPayload + "/" + inmsg.payload + ")");
-                            node.log("  TO: State = " + stateStr[current.state]);
-                            return ; //
-                        } else {
-                            node.log("4 TO: In != Out match, pass (" + lastPayload + "/" + inmsg.payload + ")");
-                        }
-                        lastPayload = "";
-                    }
-
-                    node.log("5 TO: " + inmsg.payload);
-
-                    if(/.*"payload".*/.test(inmsg.payload)) {
-                        try {
-                            inmsg.payload = JSON.parse(inmsg.payload);
-                            if(inmsg.payload.timer === undefined) {
-                                inmsg.payload.timer = node.timer;
-                            }
-                            if(inmsg.payload.warning === undefined) {
-                                inmsg.payload.warning = node.warning;
-                            }
-                        } catch(e) {
-                            // Okay, now what do we do?
-                        } /* */
-                    }
-                } else { // it's an object
-                    node.log("5aTO: " + JSON.stringify(inmsg.payload));
-                } // if((typeof(inmsg.payload) === "string")) {
-
-                // When we get here I expect (what???)
-                // it will either be a "any string"
-                // or
-                // an object of '{ "payload":"..." ... }
-
-                // =========================================================
-                // Okay now we need to deal with what just arrived
-                //
-                // We can have on of the following:
-                // 'any string' - trigger/retrigger the timer - start the timer, issue the On message
-                // 'clear' - being used in my debugging       - don't bother the timer, issue nothing
-                //
-                // Object or string (need to handle both)
-                // '{ "payload": "on", "timer": 69, "warning": 15 }' - start the timer, issue the On message
-                // '{ "payload": "off" }'    - stop the timer, issue an 'off'
-                // '{ "payload": "stop" }'   - stop the timer, issue a 'stop'
-                // '{ "payload": "cancel" }' - stop the timer, issue nothing
-                // =========================================================
-
-                // all other messages
-
-                // We're only concerned with inmsg.payload being 'on', 'off', 'stop, or 'cancel) (or are we?)
-                // more liklely node.outSafe, node.outwarning, node.outunsafe, 'stop', 'cancel'
-                if(typeof(inmsg.payload) === "object") {
-                    node.log("6 TO: '" + lastPayload + "'='" + inmsg.payload.payload + "'");
-                    node.log("  TO: '" + lastPayload + "'='" + JSON.stringify(inmsg.payload) + "' " + typeof(inmsg.payload));
-                } else {
-                    node.log("6 TO: '" + lastPayload + "'='" + inmsg.payload + "' " + typeof(inmsg.payload));
-                }
-                // This provides support for "on"
-                if(inmsg.payload.payload !== undefined) {
-                    node.log("7 TO: switch("+inmsg.payload.payload+")");
-                    switch(inmsg.payload.payload) {
-                    case 1:
-                    case "1":
-                    case "On":
-                    case "on":
-                        //node.log("7aTO: " + inmsg.payload.timer + ", " + JSON.stringify(inmsg.payload));
-
-                        oldTimeout = timeout;
-                        // We need to check for a valid timer and warning value
-                        timeout  = inmsg.payload.timer||node.timer;
-                        timedown = timeout;
-                        //node.log("  TO: Setting timedown to: " + timedown);
-                        warning = inmsg.payload.warning||node.warn; // 118
-
-                        current.state = state.NOTRUNNING;
-
-                        break;
-
-                    case 0:
-                    case "0":
-                    case "Off":
-                    case "off":
-                        if(timedown === 0) {
-                            //changed = 1; // It's already stopped
-                            current.state = state.TIMEOUT;
-                            //node.log("s1TO: changing state: " + current.state);
-                            //node.log("7aTO: off, already timedown = 0")
-                            return ;
-                        } 
-                        // Run out of time, but still in countdown
-                        // This should send the off
-                        // Turn it off right now
-                        current.state = state.OFF;
-                        //node.log("s2TO: changing state: " + current.state);
-                        timedown = 0;
-                        //changed  = 0;
-                        break;
-
-                    case "Cancel":
-                    case "cancel":
-                        // Timer cancelled
-                        current.state = state.CANCEL;
-                        //node.log("s3TO: changing state: " + current.state);
-                        timedown = 0;
-                        break;
-
-                    case "Stop":
-                    case "stop":
-                        // Timer cancelled
-                        current.state = state.STOP;
-                        //node.log("s4TO: changing state: " + current.state);
-                        timedown = 0;
-                        break;
-
-                    case "ignore":
-                    case "warning":
-                        break;
-
-                    case "debug":
-                    case "DEBUG":
-                        break;
-
-                    default:
-                        // Oops, don't know what happened
-                        node.log("? TO: unknown payload.payload " + inmsg.payload.payload);
-                        //
-                        timedown = timeout;
-                        //break;
-                    }
-                    if( timedown.isNaN ) { timeout = oldTimeout; }
-                } else {
-                    node.log("7bTO: switch("+inmsg.payload+")");
-                    switch(inmsg.payload) {
-                    case 1:
-                    case "1":
-                    case "On":
-                    case "on":
-                        node.log("7 TO: " + inmsg.payload.timer + ", " + JSON.stringify(inmsg.payload));
-
-                        oldTimeout = timeout;
-                        // We need to check for a valid timer and warning value
-                        timeout  = inmsg.payload.timer||node.timer;
-                        timedown = timeout;
-                        warning  = inmsg.payload.warning||node.warn; // 118
-
-                        //current.state = state.NOTRUNNING; //
-
-                        break;
-
-                    case 0:
-                    case "0":
-                    case "Off":
-                    case "off":
-                        if(timedown === 0) {
-                            //changed = 1; // It's already stopped
-                            current.state = state.TIMEOUT;
-                            //node.log("s5TO: changing state: " + current.state);
-                            //node.log("7aTO: off, already timedown = 0")
-                            return ;
-                        } 
-                        // Run out of time, but still in countdown
-                        // This should send the off
-                        // Turn it off right now
-                        //node.log("s6TO: changing state: " + current.state);
-                        current.state = state.OFF;
-                        timedown = 0;
-                        //changed  = 0;
-                        break;
-
-                    case "clear":
-                    case "Cancel":
-                    case "cancel":
-                    case "Stop":
-                    case "stop":
-                    case "Warning":
-                    case "warning":
-                    case "ignore":
-                        break;
-
-                    case "debug":
-                    case "DEBUG":
-                        break;
-
-                    //This is anything not handled by the switch
-                    default:
-                        timedown = timeout;
-                        //break;
-                    }
-                }
-
-                node.log("9 TO: timedown=" + timedown);
-                node.log("  TO: timeout =" + timeout);
-                node.log("  TO: state   =" + stateStr[current.state]);
-                node.log("  TO: warning =" + warning);
-
-                // Let the default handle this
-                // Otherwise anything can trip this
-                // And I'd really like the switch statement to filter out some
-                // of those statements
-            }                       // if (inmsg.payload !== "TIMINGXX") {
-
-            // =================================================================
-            // From here on timedown and changed determine what happens
-            // =================================================================
-            if (timedown === 0) {
-                var stopText;
-                // Timer stopped, now determine why
-                // Remember it's possible to be in state.WARN and the timedown == 0
-                // COUNTDOWN -> WARN -> TIMEOUT or
-                // COUNTDOWN -> STOP   (which is TIMEOUT) or
-                // COUNTDOWN -> CANCEL (which is TIMEOUT but we don't say anything) or
-                // COUNTDOWN -> OFF    (which is TIMEOUT)
-                switch(current.state) {
-                    case state.NOTRUNNING:
-                        node.payload = "Not running";
-                        break;
-                    case state.TIMEOUT:
-                    case state.WARNING:
-                        //
-                        stopText = "Timed out";
-                        node.payload = node.outunsafe;
-                        break;
-                    case state.STOP:
-                        stopText = "Stop";
-                        node.payload = "stop";
-                        break;
-                    case state.OFF:
-                        stopText = "Off";
-                        node.payload = node.outunsafe;
-                        break;
-                    case state.CANCEL:
-                        stopText = "Cancelled!";
-                        //current.state = state.NOTRUNNING;
-                        current.state = state.NOTRUNNING;
-                        //node.log("s8TO: changing state: " + current.state);
-                        node.payload = "";
-                        break;
-                    case state.COUNTDOWN: // This shouldn't be possible
-                        stopText = "Countdown (?)";
-                        node.payload = node.outunsafe;
-                        break;
-                    default:
-                        stopText = "Unknown (?)";
-                        node.payload = node.outunsafe;
-                        //break;
-                }
-
-                if(current.state !== state.NOTRUNNING) {
-                    node.log("R TO: state: " + stateStr[current.state] );
-                    node.log("R TO: text:  " + stopText);
-                    node.status({
-                        fill  : "red",
-                        shape : "dot",
-                        text  : stopText
-                    });
-
-                    timeout = oldTimeout;
-
-                    // TIMEOUT, STOP, CANCEL, and OFF should be TIMEOUT when done
-                    if ((current.state === state.WARNING) || (current.state === state.STOP) || (current.state === state.OFF) || (current.state === state.TIMEOUT)) {
-                        current.state = state.NOTRUNNING;
-                        lastPayload = node.payload;
-
-                        node.log("Send red: " + lastPayload);
-                        node.send(node);
-                    }
-                }
-            } else { // red above
-                //if ((timedown <= node.warn) && (node.outwarn !== "")) {
-                //if ((timedown <= node.warn) && ((current.state !== state.WARNING) || (current.state === state.TIMEOUT))) {
-                if(timedown <= warning)  {
-                    if (current.state !== state.WARNING) {
-                        node.log("Y TO: state = " + stateStr[current.state]);
-                    }
-
-                    if (node.outwarn !== "") {
+        // -------------------------------------------------------------------------------
+        // Commands
+        // TIX
+        node.on("TIX", function(inMsg) {
+            lastPayload = "";
+            if(ticks > 0) {
+                // A blank outwarning means don't send
+                if((warn >= ticks) && (node.outwarn !== "")) {
+                    // a warn of 0 seconds also means don't send
+                    if (warn) {
                         // Timer at warning
                         node.status({
                             fill  : "yellow",
                             shape : "dot",
-                            text  : "Warning: " + timedown // provide a visual countdown
+                            text  : "Warning: " + ticks // provide a visual countdown
                         });
 
-                        timedown = timedown - 1; // timedown--;
+                        if(!wflag) {
+                            node.payload = node.outwarn;
 
-                        node.payload = node.outwarn;
-
-                        //if ((changed!=2)||(node.repeat)) {
-                        if (current.state === state.COUNTDOWN) {
-                            //changed=2;
-                            //setTimeout(clrLastPayloadFlag, 1002); //
-                            current.state = state.WARNING;
                             lastPayload = node.payload;
                             node.log("Send yellow: " + lastPayload);
-                            node.send(node);
+                            node.send([node, null]);
+                            wflag = true;
                         }
                     } // warn if there's a warn message
-                } else { // warn if not in warn or timeout // yellow and green
-                    // Timer running
-                    if(current.state !== state.WARNING) {
-                        node.status({
-                            fill  : "green",
-                            shape : "dot",
-                            text  : "Counting: " + timedown // provide a visual countdown
-                        });
 
-                        node.payload = node.outsafe;
+                    var tremain = { "payload": {"payload": ticks, "state": 2, "flag": "warn >= ticks"}};
+                    node.send([null, tremain]);
+                } else {
+                    // HOW does this get sent out?
+                    node.status({
+                        fill  : "green",
+                        shape : "dot",
+                        text  : "Running: " + ticks // provide a visual countdown
+                    });
 
-                        //if ((current.state !== state.COUNTDOWN) || (current.state !== state.WARNING)) {
-                        //if ((current.state !== state.COUNTDOWN) && (current.state !== state.WARNING)) {
-                        if (current.state !== state.COUNTDOWN) {
-                            node.log("G TO: state = " + stateStr[current.state]);
-                            lastPayload = node.payload;
-                            current.state = state.COUNTDOWN;
-                            node.log("G TO: Send green: " + lastPayload);
-                            node.send(node);
-                        }
-                    }
-
-                    timedown = timedown -1; // timedown--;
+                    var tremain = { "payload": {"payload": ticks, "state": 1, "flag": "ticks > 0"}};
+                    node.send([null, tremain]);
                 }
-            } // this should be the
-        }); // node.on()
+                ticks--;
+            } else if(ticks == 0){
+                node.log("ticks == 0");
+                stop("off");
 
-        //
+                //var tremain = { "payload": {"payload": 0, "state": 0, "flag": "ticks == 0"}};
+                //node.send([null, tremain]);
+
+                ticks = -1;
+            } else {
+                // Do nothing
+            }
+        });
+
+        // @FIXME: We're not seeing the warning when warning is set but when defaults is not
+        // Stop         (initial state at start up and when not running)
+        // On           (timer reset to default value and running, on sent)
+        // Off          (timer off, off sent, return to Stop)
+        // CANCEL       (timer off, nothing sent, return to Stop)
+        // Warning      (timer still on, warning sent)
+        // Timeout      (timer off, off sent, return to Stop
+        node.on( "input", function(inMsg) {
+            // inMsg = {"topic":"home/test/countdown-in-b","payload":"{ \"payload\":\"on\",\"timeout\":6,\"warning\":3}","qos":0,"retain":false,"_msgid":"10ea6e2f.68fb32"}
+            // inMsg = {"topic":"home/test/countdown-in-b","payload":"on","qos":0,"retain":false,"_msgid":"fd875a01.526a68"}
+            node.log('================================================================================');
+            node.log('1 node.input("input");');
+            node.log("1 inMsg = " + JSON.stringify(inMsg));
+            node.log("1 State = " + state);
+            node.log("1 timeout = " + node.timer + " - node.timer");
+            node.log("1 timeout = " + timeout + " - timeout");
+            node.log("1 warning = " + node.warn);
+
+            // =================================================================
+            // First we need to drop any message than matches the last message
+            // sent. This will keep us from getting into an infinite loop.
+            // =================================================================
+
+            //
+            // This is taken from myTimeout.js (node-red-contrib-mytimeout)
+            // It's purposed is to stop from repeating the same message from
+            // being resent (an endless loop). For some reason this is on the
+            // isString() check ... hmmm
+            // =================================================================
+// ================================================================================
+            // =========================================================
+            // Okay here's what I expect, user sends something (anything)
+            // node send node.outsafe,
+            // if node sees the exact string node.outstring just sent
+            // then drop it
+            // If the timer goes off then the lastPayload should be cleared
+            if(typeof(inMsg.payload) === "string") {
+                // this helps ignore message I just sent out
+                if(lastPayload !== "") {
+                    /*
+                       26 Jun 02:22:23 - [info] [mytimeout:B] 4 TO: In != Out match, pass (off/{"payload": "off})
+                       26 Jun 02:22:23 - [info] [mytimeout:B] 5 TO: {"payload": "off}
+                    */
+                    if(lastPayload === inMsg.payload) {
+                        node.log("4 TO: In == Out match, skip (" + lastPayload + "/" + inMsg.payload + ")");
+                        node.log("4  TO: State = " + state);
+                        node.log("return !");
+                        //ticks = timeout || node.timer;
+                        return ; //
+                    } else {
+                        node.log("4 TO: In != Out match, pass (" + lastPayload + "/" + inMsg.payload + ")");
+                    }
+                    ticks = parseInt(timeout || node.timer);
+                    lastPayload = "";
+                }
+
+                // Argh! The object is inside the msg.payload
+                node.log("5 TO: " + inMsg.payload);
+
+
+                // > var msg = {"payload":100}
+                // > /.*"payload".*/.test(msg.payload)
+                // false
+                // > var msg = {"payload":'"payload":"on", "timeout":600,"warning":0}'} // this is a string not an object
+                // undefined
+                // > /.*"payload".*/.test(msg.payload)
+                // true
+                if(/.*"payload".*/.test(inMsg.payload)) {
+                    node.log("inMsg.payload = " + inMsg.payload);
+                    try {
+                        //
+                        // Convert the msg.payload to the inmsg.payload (string -> object)
+                        inMsg.payload = JSON.parse(inMsg.payload);
+                        if(inMsg.payload.timer === undefined) {
+                            inMsg.payload.timer = node.timer;
+                        }
+                        if(inMsg.payload.warning === undefined) {
+                            inMsg.payload.warning = node.warn;
+                        }
+                        line = inMsg.payload;
+                    } catch(e) {
+                        // Okay, now what do we do?
+                        node.log("countdown.js: payload string to object conversion failed");
+                        line = inMsg.payload;
+                    } /* */
+                } else {
+                    line = inMsg;
+                }
+            } else { // it's an object
+                node.log("5aTO: " + JSON.stringify(inMsg.payload));
+                line = inMsg.payload;
+            } // if((typeof(inMsg.payload) === "string")) {
+
+            // When we get here I expect (what???)
+            // it will either be a "any string"
+            // or
+            // an object of '{ "payload":"..." ... }
+
+            // =========================================================
+            // Okay now we need to deal with what just arrived
+            //
+            // We can have on of the following:
+            // 'any string' - trigger/retrigger the timer - start the timer, issue the On message
+            // 'clear' - being used in my debugging       - don't bother the timer, issue nothing
+            //
+            // Object or string (need to handle both)
+            // '{ "payload": "on", "timer": 69, "warning": 15 }' - start the timer, issue the On message
+            // '{ "payload": "off" }'    - stop the timer, issue an 'off'
+            // '{ "payload": "stop" }'   - stop the timer, issue a 'stop'
+            // '{ "payload": "cancel" }' - stop the timer, issue nothing
+            // =========================================================
+            // =================================================================
+
+            if(line.payload === "on") {
+                // =============================================================
+                // 'on' - here is the only place where you can change the
+                // defaults
+                // And this get tricky
+                // =============================================================
+                ticks   = parseInt(timeout || node.timer);
+                timeout = ticks;
+                if(line.warning === "0") {
+                    // 0 is used to override the sending of a warning message
+                    warn = 0;
+                } else {
+                    warn = parseInt(warn || node.warn);
+                }
+            }
+// ================================================================================
+            try {
+                // Where are state and line defined?
+                node.log("2 states[" + state + "][" + line.payload.toLowerCase() + "]()");
+                node.log("2 timeout = " + node.timer);
+                node.log("2 timeout = " + timeout);
+                node.log("2 warning = " + node.warn);
+                node.log("2 warning = " + warn);
+
+                // line.payload.toLowerCase()
+                states[state][line.payload](inMsg.payload);
+            } catch(err) {
+                // =============================================================
+                // 'on' - here is the only place where you can change the
+                // defaults
+                // And this get tricky
+                // =============================================================
+                ticks   = timeout || node.timeout;
+                timeout = ticks;
+                warn    = parseInt(warn || node.warn);
+
+                node.log("states catch: " + err + "(" + ticks + "/" + warn + ")");
+                // If it's not an existing state then treat it as an on
+                // that way anthing can be used as a kicker to keep the timer
+                // running
+                on(inMsg.payload);
+            }
+        }); // node.on("input", ... )
+
+        // Once the node is instantiated this keeps running
+        // I'd like to change this to run when only needed
         var tick = setInterval(function() {
-            var msg = { payload:"TIMINGXX", topic:""};
-            node.emit("input", msg);
+            var msg = { payload:'TIX', topic:""};
+            node.emit("TIX", msg);
         }, 1000); // trigger every 1 sec
 
         node.on("close", function() {
@@ -506,7 +494,7 @@ module.exports = function (RED) {
             }
         });
 
-    } // function myTimeoutNode(n)
+    } // function myTimeoutNode(n);
+    RED.nodes.registerType("mytimeout", countdownNode);
+} // module.exports
 
-    RED.nodes.registerType("mytimeout", myTimeoutNode);
-};
