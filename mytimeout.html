@@ -1,20 +1,20 @@
 <!--
-     This software puts out one of two messages on change of state
-     which could be sent to the MQTT node and can be triggered by
-     the INJECT module (should be triggered once every minute)
+    This software puts out one of several messages on change of state
+    which could be sent to the MQTT node and can be triggered by
+    the INJECT module, an mqtt topic or a button on the UI.
 
-    Based on Peter Scargill's (https://tech.scargill.net) work on BigTimer
+    Based on Peter Scargill's work on BigTimer
     Copyright 2018 Neil Cherry (ncherry@linuxha.com - https://linuxha.com)
                    Peter Scargill's (https://tech.scargill.net)
 -->
 
 <script type="text/x-red" data-template-name="mytimeout">
 
-     <div class="form-row">
-		<label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-		<input type="text" id="node-input-name" placeholder="Name">
-     </div>
-	 
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+  
   <div class="form-row">
     <label for="node-input-outtopic"><i class="fa fa-tag"></i> Output Topic</label>
     <input style="width:70%" type="text" id="node-input-outtopic" placeholder="topic">
@@ -46,19 +46,19 @@
   </div>
   
 <!--
-  	<div>
-		<span style="width: 350px; float: left; margin-left: 5px;"><input type="checkbox" id="node-input-repeat" placeholder="repeat" > Repeat message every second</span>
-		<br/><br/>
-	</div>
-  	<div>
-		<span style="width: 350px; float: left; margin-left: 5px;"><input type="checkbox" id="node-input-again" placeholder="again" > Auto-restart when timed out</span>
-		<br/><br/>
-	</div>	
-	
-  	<div>
-		<span style="width: 350px; float: left; margin-left: 5px;"><input type="checkbox" id="node-input-atStart" placeholder="atStart" > Run at start</span>
-		<br/><br/>
-	</div>
+      <div>
+	<span style="width: 350px; float: left; margin-left: 5px;"><input type="checkbox" id="node-input-repeat" placeholder="repeat" > Repeat message every second</span>
+	<br/><br/>
+      </div>
+      <div>
+	<span style="width: 350px; float: left; margin-left: 5px;"><input type="checkbox" id="node-input-again" placeholder="again" > Auto-restart when timed out</span>
+	<br/><br/>
+      </div>	
+      
+      <div>
+	<span style="width: 350px; float: left; margin-left: 5px;"><input type="checkbox" id="node-input-atStart" placeholder="atStart" > Run at start</span>
+	<br/><br/>
+      </div>
 -->
 </script>
 
@@ -67,15 +67,24 @@
 
     <p> This documentation really needs work!</p>
 
-    <p>A simple timout... on starts the timer and sends out the Timer on payload (on) message - then nothing as long as it is 
-	kept topped up by input. If the counter counts down to the warning level it outputs the WARNING message.
-	If it times out - the UNSAFE (off) message is sent out. Can also be used as a simply output toggle.</p>
+    <p> A simple timeout node, "on" starts the timer and sends out the
+	"Timer on payload" (on) message. Every additional "on" will
+	send an additional "Timer on payload" message on output 1. If
+	the counter counts down to the warning level it outputs the
+	WARNING message.  If the timer is allowed to count down to 0 -
+	the UNSAFE (off) message is sent out.</p>
 
-    <p>An empty WARNING message in the node's properties will allow you to skip sending the warning message.</p>
+    <p> An empty WARNING message in the node's properties will allow
+        you to skip sending the warning message. As will setting the
+        warning seconds to 0.</p>
 
     <h3>Acceptable input</h3>
-    <p> The normal input msg.payload can contain an "on" or "1" for the Timer On payload, For the Timer Off payload
-        an "off" or "0", a payload of "stop" will stop the time and output a "stop" message, a payload of "cancel"
+
+    <p> The normal input msg.payload can contain an "on" or "1" for
+        the Timer On payload, For the Timer Off payload an "off" or
+        "0", a payload of "stop" will stop the time and output a
+        "stop" message, a payload of "cancel" will cancel the timer
+        with no additional messages on output 1. </p>
         
     <ul>
         <li>on or 1 (case insensitive)</li>
@@ -87,7 +96,10 @@
     </ul>
 
     <h3>JSON input</h3>
-    <p>You can override the user's default settings by send a JSON packet with a payload, timeout and warning.</p>
+
+    <p> You can override the user's default settings by send a JSON
+        packet with a payload, timeout and warning (in seconds).</p>
+
     <pre><code>{
     "payload": "on",
     "timeoute": 600,
@@ -114,7 +126,7 @@ or
       <li>stop - immediately turns off the timer and sends an stop as the msg.payload (which is not an off)</li>
       <li>cancel - immediately turns off the timer and sends nothing</li>
       <li>JSON payload - (see above)</li>
-      <li>anything else - is treated as an on command</li>
+      <li>anything else - is treated as an on command allowing us to tickle or kick the timer (keep it on)</li>
     </ul>
 
 </script>
