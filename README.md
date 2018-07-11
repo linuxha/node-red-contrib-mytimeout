@@ -1,5 +1,5 @@
 # node-red-contrib-mytimeout Readme
-**Note:** Version changed to **2.1.1**. The code has changed the input from timer to timeout to match the documentation.
+**Note:** Version changed to **2.1.2**. The code has changed the input from timer to timeout to match the documentation.
 
 Was:
 
@@ -63,6 +63,13 @@ You can configure the timeout module with the settings for the Safe and Unsafe m
 All of this is very useful for things like lights that are motion activated. If motion is detected, the Safe payload is sent (On or 1). The timer can be started when motion is detected and as long as the motion continues there will be no timeout (if motion occurs more often than the default timeout). When the timeout occurs the Unsafe payload is sent (Off or 0). When the timeout warning time (n seconds before the timeout) occurs the warning message is sent on output 1.
 
 ## MyTimeout
+The simple payload is just a string consisting of:
+
+* "on" or 1 - which turns on the timer and uses the default settings in the node (and issues an "on" on the output)
+* "off" or 0 - which turns off the timer (and issues an "off" on the output)
+* "stop" - which stops the timer (and issues a "stop" on the output)
+* "cancel" - which cancels the timer (and does not send any output)
+
 My additions to the code allows the user to send JSON in the triggers. You can override the timeout and warning times. 
 
 ```
@@ -84,6 +91,23 @@ My additions to the code allows the user to send JSON in the triggers. You can o
     "payload": "cancel"
 }
 ```
+
+Ths "payload" behaves like the simple string payload above.
+
+### The second output
+This is a new feature in v2.x.x of node-red-contrib-mytimeout. It is the countdown information.
+
+```
+{"payload":30,"state":1,"flag":"ticks > 0"}
+{"payload":5,"state":2,"flag":"warn >= ticks"}
+{"payload": -1, "state": 0, "flag": "stop"}
+{"payload": 0, "state": 0, "flag": "off"}
+{"payload": -1, "state": 0, "flag": "cancel"}
+{"payload": -1, "state": 0, "flag": "unknown"}
+```
+
+The "payload" is the number of seconds left on the timer, if 0 that means it is off, -1 means it was stopped, cancelled or the unknown has occurred.
+
 ### Payload
 * **on** - turns on the timer. The addition fields *timeout* and *warning* are optional and allow the user to change the defaults. Both field values are integers and are in seconds. This payload will cause the timer to send a *Timer on payload* message in the msg.payload output
 * **off** - turns off the timer. This payload will cause the timer to send a *Timer off payload* in the msg.payload output
