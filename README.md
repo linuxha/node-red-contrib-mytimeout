@@ -130,3 +130,8 @@ message. The JSON **cancel** message will stop the timeout and not
 send a message. There is very little difference in the *off*, *stop*
 and *cancel* behaviors other than what is sent or not sent to the
 output 1. They all stop the timer.
+
+# Sample flow
+
+I put together a [sample flow](https://flows.nodered.org/flow/a391edfb38b959122d2dd42242ddd950) that should help with using the node.
+
