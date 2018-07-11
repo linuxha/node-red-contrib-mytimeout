@@ -72,55 +72,41 @@ module.exports = function(RED) {
         var timeout     = parseInt(n.timer||30);    // 
         var warn        = parseInt(n.warning||10);  // 
 
-        var dbgCount    = 0;            // This is temporary to make sure we don't have a runaway process
-
         var line        = {};
-
-        var BUG = 1;
 
         RED.nodes.createNode(this, n);
 
         // =====================================================================
         // There can be:
         // payload = "on" or 1 or "1" or anthing else except off/stop/cancel/debug
-        //
-        // @FIXME: If an on is sent it uses the current ticks (not the initial ticks sent with the message)
-        //
         function on(msg) {
             // My intention is to move all the calculations for
             // these variables to here. At the moment they're all over
             // the place and confusing
+            node.log("    msg:        " + JSON.stringify(msg));
+            node.log("    msg:        " + typeof(msg));
             node.log("    node.timer: " + node.timer);
             node.log("    node.warn:  " + node.warn);
+            try {
+                node.log("    msg.timeout:" + msg.timeout);
+                node.log("    msg.warning:" + msg.warning);
+            } catch(e) {
+                node.log("    msg.timeout:undefined");
+                node.log("    msg.warning:undefined");
+            }
             node.log("    timeout:    " + timeout);
             node.log("    warn:       " + warn);
             node.log("    ticks:      " + ticks);
-            if(msg) {
-                // There are 3 sets of variables
-                // default values (node.timer, node.warn)
-                // passed values  (timeout, warn - if any)
-                // running values (ticks)
-                if(typeof(msg) === "object") {
-                    node.log("msg: " + JSON.stringify(msg));
-                    // if the message has msg.timeout
-                    // if the message has msg.warning
-                    if(msg.timeout) {
-                        timeout = msg.timeout;
-                        if(msg.warning) {
-                            warn = msg.warning;
-                        }
-                    }
-                } else {
-                    node.log("msg: " + msg);
-                    //then we should use the defaults
-                    timeout = parseInt(timeout||node.timer);
-                    warn    = parseInt(warn||node.warn);
-                }
-            } else {
-                node.log("No msg");
-                timeout = parseInt(timeout||node.time);
-                warn    = parseInt(warn||node.warn);
-            }
+
+            //
+            // There are 3 sets of variables
+            // default values (node.timer, node.warn)
+            // passed values  (timeout, warn - if any)
+            // running values (ticks)
+            //
+            ticks   = msg.timeout||timeout||node.timer;
+            timeout = msg.timeout||timeout||node.timer;
+            warn    = msg.warning||warn||node.warn;
 
             ticks = timeout;
 
@@ -160,14 +146,15 @@ module.exports = function(RED) {
         // In: stop   out: stop
         // In: cancel out: (nothing)
         function stop(s) {
-            if(!s) {
+            // if the main input routine calls this function, it will pass an
+            // object (the input msg) which we don't care about really
+            if(typeof(s) !== "string") {
                 node.log("Empty stop");
                 s = 'stop';
             }
 
             node.log(s + "! A");
             ticks = 0;
-            state = s;
 
             node.status({
                 fill  : "red",
@@ -214,6 +201,8 @@ module.exports = function(RED) {
             ticks = -1;
             timeout = parseInt(node.timer);
             warn    = parseInt(node.warn);
+
+            node.log('=[ fini ]=======================================================================');
         }
 
         function cancel() {
@@ -228,10 +217,79 @@ module.exports = function(RED) {
             ticks = -1;
         }
 
+        function newMsg(msg) {
+            var nMsg = msg;
+
+            // x console.log("msg  = " + JSON.stringify(msg));
+            // x console.log("nMsg = " + JSON.stringify(nMsg));
+
+            switch(typeof(msg.payload)) {
+                case "string":
+                    if(/.*"payload".*/.test(msg.payload)) {
+                        // string contain payload, convery to JSON
+                        //
+                        // in   = {"payload":"{ \"payload\":\"on\",\"timeout\":6,\"warning\":0}","qos":0}
+                        // msg  = {"payload":"{ \"payload\":\"on\",\"timeout\":6,\"warning\":0}","qos":0}
+                        // nMsg = {"payload":"{ \"payload\":\"on\",\"timeout\":6,\"warning\":0}","qos":0}
+                        // msg  = {"payload":"on","timeout":6,"warning":0}
+                        // nMsg = {"payload":"on","timeout":6,"warning":0}
+                        // str msg  = {"payload":"on","timeout":6,"warning":0}
+                        // str msg  = {"payload":"on","qos":0}
+                        // out  = {"payload":"on","qos":0}
+                        //
+                        // > obj1 = { "payload": 1, "qos": 0 };
+                        // > obj2 = { "payload": "on", "timeout": 60 };
+                        // > var result = Object.assign({},obj1, obj2);
+                        // { payload: 'on', qos: 0, timeout: 60 }
+                        //
+                        // x console.log("str msg = " + JSON.stringify(msg));
+                        var t = newMsg(JSON.parse(msg.payload));
+                        //nMsg.payload = t.payload;
+                        nMsg = Object.assign({}, msg, t);
+                    } else {
+                        // x console.log("Not a /.*\"payload\".*/")
+                        //nMsgpayload = msg.payload;
+                    }
+                    // x console.log("str msg  = " + JSON.stringify(nMsg));
+                    // x console.log("typeof   = " + typeof(nMsg));
+                    // x console.log("str msg  = " + JSON.stringify(nMsg.payload));
+                    // x console.log("typeof   = " + typeof(nMsg.payload));
+
+                    try{
+                        nMsg.payload = nMsg.payload.toLowerCase();
+                    } catch(e) {
+                        nMsg.payload = nMsg.payload.toString().toLowerCase();
+                    }
+                    break;
+
+                case "number":
+                    nMsg.payload = msg.payload.toString();
+                    // x console.log("num msg  = " + JSON.stringify(nMsg));
+                    break;
+
+                case "object":
+                    // x console.log("obj msg  = " + JSON.stringify(msg));
+                    msg.payload = msg.payload.payload;
+                    t = newMsg(msg);
+                    nMsg = t.payload;
+                    // x console.log("obj nmsg = " + JSON.stringify(nMsg));
+                    break;
+
+                default:
+                    node.log("??? msg  = " + JSON.stringify(msg));
+                    node.log("??? msg  = " + typeof(msg.payload));
+                    nMsg = { "payload": "" };
+                    // x console.log("??? msg  = " + JSON.stringify(nMsg));
+                    break;
+            }
+
+            return(nMsg);
+        }
+
         var states = {
             // Not sure if this is what I want in the long run but this is good for now
-            stop: { on: on, off: off, stop: doNothing, cancel: doNothing }, 
-            run:  { on: on, off: off, stop: stop, cancel: cancel }, 
+            stop: { 0: off, on: on, off: off, stop: doNothing, cancel: doNothing }, 
+            run:  { 0: off, on: on, off: off, stop: stop, cancel: cancel }, 
         };
 
         var state = 'stop';
@@ -249,8 +307,9 @@ module.exports = function(RED) {
           Timer On payload          on
           Warning state payload     Warning
           Timer Off payload         off
-          Warning (secs)            5
           Countdown (secs)          30
+          Warning (secs)            5
+
           Rate Limit (msg/secs)     30
           [ ] Repeat message every second <- This doesn't seem like a good idea (???)
           [ ] Auto-restart when timed out
@@ -324,7 +383,6 @@ module.exports = function(RED) {
             }
         });
 
-        // @FIXME: We're not seeing the warning when warning is set but when defaults is not
         // Stop         (initial state at start up and when not running)
         // On           (timer reset to default value and running, on sent)
         // Off          (timer off, off sent, return to Stop)
@@ -334,7 +392,7 @@ module.exports = function(RED) {
         node.on( "input", function(inMsg) {
             // inMsg = {"topic":"home/test/countdown-in-b","payload":"{ \"payload\":\"on\",\"timeout\":6,\"warning\":3}","qos":0,"retain":false,"_msgid":"10ea6e2f.68fb32"}
             // inMsg = {"topic":"home/test/countdown-in-b","payload":"on","qos":0,"retain":false,"_msgid":"fd875a01.526a68"}
-            node.log('================================================================================');
+            node.log('=[ input ]======================================================================');
             node.log('1 node.input("input");');
             node.log("1 inMsg = " + JSON.stringify(inMsg));
             node.log("1 State = " + state);
@@ -347,7 +405,10 @@ module.exports = function(RED) {
             // sent. This will keep us from getting into an infinite loop.
             // =================================================================
 
-            //
+            // From here to the try { } catch {} we should only need to get the
+            // inMsg's payload into line.payload (could be a string or object)
+
+
             // This is taken from myTimeout.js (node-red-contrib-mytimeout)
             // It's purposed is to stop from repeating the same message from
             // being resent (an endless loop). For some reason this is on the
@@ -360,69 +421,17 @@ module.exports = function(RED) {
             // if node sees the exact string node.outstring just sent
             // then drop it
             // If the timer goes off then the lastPayload should be cleared
-            if(typeof(inMsg.payload) === "string") {
-                // this helps ignore message I just sent out
-                if(lastPayload !== "") {
-                    /*
-                       26 Jun 02:22:23 - [info] [mytimeout:B] 4 TO: In != Out match, pass (off/{"payload": "off})
-                       26 Jun 02:22:23 - [info] [mytimeout:B] 5 TO: {"payload": "off}
-                    */
-                    if(lastPayload === inMsg.payload) {
-                        node.log("4 TO: In == Out match, skip (" + lastPayload + "/" + inMsg.payload + ")");
-                        node.log("4  TO: State = " + state);
-                        node.log("return !");
-                        //ticks = timeout || node.timer;
-                        return ; //
-                    } else {
-                        node.log("4 TO: In != Out match, pass (" + lastPayload + "/" + inMsg.payload + ")");
-                    }
-                    ticks = parseInt(timeout || node.timer);
-                    lastPayload = "";
-                }
 
-                // Argh! The object is inside the msg.payload
-                node.log("5 TO: " + inMsg.payload);
+            // We only send a simple message ('on', 'off', 'stop' or 'cancel')
+            if(lastPayload === inMsg.payload) {
+                // So it's the same message as what was previously sent
+                node.log("4 TO: In == Out match, skip (" + lastPayload + "/" + inMsg.payload + ")");
+                node.log('=[ Skip ]=======================================================================');
+                return ; //
+            }
 
-
-                // > var msg = {"payload":100}
-                // > /.*"payload".*/.test(msg.payload)
-                // false
-                // > var msg = {"payload":'"payload":"on", "timeout":600,"warning":0}'} // this is a string not an object
-                // undefined
-                // > /.*"payload".*/.test(msg.payload)
-                // true
-                if(/.*"payload".*/.test(inMsg.payload)) {
-                    node.log("inMsg.payload = " + inMsg.payload);
-                    try {
-                        //
-                        // Convert the msg.payload to the inmsg.payload (string -> object)
-                        inMsg.payload = JSON.parse(inMsg.payload);
-                        if(inMsg.payload.timer === undefined) {
-                            inMsg.payload.timer = node.timer;
-                        }
-                        if(inMsg.payload.warning === undefined) {
-                            inMsg.payload.warning = node.warn;
-                        }
-                        line = inMsg.payload;
-                    } catch(e) {
-                        // Okay, now what do we do?
-                        node.log("countdown.js: payload string to object conversion failed");
-                        line = inMsg.payload;
-                    } /* */
-                } else {
-                    line = inMsg;
-                }
-            } else { // it's an object
-                node.log("5aTO: " + JSON.stringify(inMsg.payload));
-                line = inMsg.payload;
-            } // if((typeof(inMsg.payload) === "string")) {
-
-            // When we get here I expect (what???)
-            // it will either be a "any string"
-            // or
-            // an object of '{ "payload":"..." ... }
-
-            // =========================================================
+if(0) {
+            // =================================================================
             // Okay now we need to deal with what just arrived
             //
             // We can have on of the following:
@@ -430,12 +439,90 @@ module.exports = function(RED) {
             // 'clear' - being used in my debugging       - don't bother the timer, issue nothing
             //
             // Object or string (need to handle both)
-            // '{ "payload": "on", "timer": 69, "warning": 15 }' - start the timer, issue the On message
+            // '{ "payload": "on", "timeout": 69, "warning": 15 }' - start the timer, issue the On message
             // '{ "payload": "off" }'    - stop the timer, issue an 'off'
             // '{ "payload": "stop" }'   - stop the timer, issue a 'stop'
             // '{ "payload": "cancel" }' - stop the timer, issue nothing
-            // =========================================================
             // =================================================================
+            /*
+            ** Wow, this is ugly!
+            ** I can get a string, a number or an object
+            ** but the string can contain a payload (needs to be converted to JSON)
+            ** and then it can be a string, a number
+              > j = { "payload": 0 }
+                { payload: 0 }
+              > typeof(j.payload)
+                'number'
+              > 
+              > j = { "payload": "0" }
+                { payload: '0' }
+              > typeof(j.payload)
+                'string'
+              > 
+              > j = { "payload": "{ \"payload\":0}" }
+                { payload: '{ "payload":0}' }
+              > typeof(j.payload)
+                'string'
+              > 
+              > j = { "payload": {"payload": 0 }}
+                { payload: { payload: 0 } }
+              > typeof(j.payload)
+                'object'
+              > 
+              > j = { "payload": {"payload": "0" }}
+                { payload: { payload: '0' } }
+              > typeof(j.payload)
+                'object'
+              > 
+            */
+            // =================================================================
+            switch(typeof(inMsg.payload)) {
+                case "string":
+                    // Argh! The object is inside the msg.payload
+                    node.log("5 TO: str " + inMsg.payload);
+
+                    // > var msg = {"payload":100}
+                    // > /.*"payload".*/.test(msg.payload)
+                    // false
+                    // > var msg = {"payload":'"payload":"on", "timeout":600,"warning":0}'} // this is a string not an object
+                    // undefined
+                    // > /.*"payload".*/.test(msg.payload)
+                    // true
+                    if(/.*"payload".*/.test(inMsg.payload)) {
+                        node.log("inMsg.payload = " + inMsg.payload);
+                        try {
+                            //
+                            // Convert the msg.payload to the inmsg.payload (string -> object)
+                            node.log("> inMsg typeof  = " + typeof(inMsg.payload));
+                            line = JSON.parse(inMsg.payload);
+                            node.log("< inMsg.payload = " + line);
+                            node.log("< inMsg typeof  = " + typeof(line));
+                        } catch(e) {
+                            // Okay, now what do we do?
+                            node.log("countdown.js: payload string to object conversion failed");
+                            line = inMsg.payload;
+                        } /* */
+                    } else {
+                        line = inMsg;
+                    } // if(/.*"payload".*/.test(inMsg.payload))
+                    break;
+                case "number":
+                    // It's a number so nothing to do here
+                    node.log("5 TO: num " + inMsg.payload);
+                    line = inMsg.payload;
+                    break;
+                case "object":
+                    // it's an object, now we need to see what's in there
+                    node.log("5 TO: obj " + inMsg.payload);
+                    node.log("5aTO: " + JSON.stringify(inMsg.payload));
+                    line = inMsg.payload;
+                    break;
+                default:
+                    node.log("5 TO: ??? " + inMsg.payload);
+                    console.log("inMsg.payload isn't a string, a number or an object");
+                    break;
+            } // if((typeof(inMsg.payload) === "string")) {
+
 
             if(line.payload === "on") {
                 // =============================================================
@@ -452,33 +539,37 @@ module.exports = function(RED) {
                     warn = parseInt(warn || node.warn);
                 }
             }
+} else {
+            line = newMsg(inMsg);
+            node.log("line = " + JSON.stringify(line));
+}
 // ================================================================================
+            var s = "nada";
             try {
-                // Where are state and line defined?
-                node.log("2 states[" + state + "][" + line.payload.toLowerCase() + "]()");
-                node.log("2 timeout = " + node.timer);
-                node.log("2 timeout = " + timeout);
-                node.log("2 warning = " + node.warn);
-                node.log("2 warning = " + warn);
-
-                // line.payload.toLowerCase()
-                states[state][line.payload](inMsg.payload);
+                if(typeof(line.payload) == 'string') {
+                    s = ("states catch: line " + line.payload);
+                    states[state][line.payload](line);
+                } else {
+                    // Hopefully I've converted all the input to a string and
+                    // to lower case.
+                    s = ("states catch: line " + line.payload.payload);
+                    states[state][line.payload.payload](line);
+                }
             } catch(err) {
                 // =============================================================
+                // @FIXME: Need this moved into the on() function
                 // 'on' - here is the only place where you can change the
                 // defaults
                 // And this get tricky
                 // =============================================================
-                ticks   = timeout || node.timeout;
-                timeout = ticks;
-                warn    = parseInt(warn || node.warn);
-
+                node.log(s);
                 node.log("states catch: " + err + "(" + ticks + "/" + warn + ")");
                 // If it's not an existing state then treat it as an on
                 // that way anthing can be used as a kicker to keep the timer
                 // running
-                on(inMsg.payload);
+                on(line);
             }
+// ================================================================================
         }); // node.on("input", ... )
 
         // Once the node is instantiated this keeps running
@@ -497,4 +588,3 @@ module.exports = function(RED) {
     } // function myTimeoutNode(n);
     RED.nodes.registerType("mytimeout", countdownNode);
 } // module.exports
-
