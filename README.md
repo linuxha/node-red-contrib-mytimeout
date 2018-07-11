@@ -1,5 +1,9 @@
 # node-red-contrib-mytimeout Readme
-**Note:** Version changed to **2.1.2**. The code has changed the input from timer to timeout to match the documentation.
+Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending it input. It can be turned off, stopped or cancelled with the correct input. It can be 'tickled' (restarted) with any other command not listed below. You can dynamically change the timeout and warning values by sending the appropriate JSON to the input.
+
+Node-red-contrib-mytimeout can send and receive to the same topic (if the input matches the output and the message is skipped to avoid an endless loop).
+
+**Note:** Versions before **2.0.0** had incorrect code. The code has changed the input from /timer/ to /timeout/ to match the documentation.
 
 Was:
 
@@ -48,7 +52,7 @@ The **unknown** should never occur but is left in in case something breaks.
 ## myTimeout
 MyTimeout started as hacked timer code I stole from Pete Scargill. The code would start a timer running if you sent it any trigger (tickle the timer). It would continue to run if further triggers were sent before the timeout occurred. A trigger was anything sent to the input of the timer.
 
-My code goes some steps further. It allows you to tickle the timer, turn it off, stop it or cancel the timer. It also allows you to send JSON (see below) to override the timer, to turn off the timer or to cancel or stop the timer. It still retains Pete's behaviors. You can still send almost anything to tickle the timer with the exception of the JSON below which will cause the timer to do specific things.
+My code goes some steps further. It allows you to tickle the timer, turn it off, stop it or cancel the timer. It also allows you to send JSON (see below) to override the timer, to turn off the timer or to cancel or stop the timer. It still retains some of Pete's behaviors. You can still send almost anything to tickle the timer with the exception of the JSON below which will cause the timer to do specific things.
 
 You can configure the timeout module with the settings for the Safe and Unsafe messages. Safe is sent on the start of the timer, the unsafe message sent when the timeout occurs.
 
@@ -61,6 +65,8 @@ You can configure the timeout module with the settings for the Safe and Unsafe m
 * Warning (sec)
 
 All of this is very useful for things like lights that are motion activated. If motion is detected, the Safe payload is sent (On or 1). The timer can be started when motion is detected and as long as the motion continues there will be no timeout (if motion occurs more often than the default timeout). When the timeout occurs the Unsafe payload is sent (Off or 0). When the timeout warning time (n seconds before the timeout) occurs the warning message is sent on output 1.
+
+If you set the warning seconds to 0 or leave the warning payload empty then the timer will skip sending a warning message and simply do a countdown. Setting the warning time in the JSON input to 0 will do the same thing.
 
 ## MyTimeout
 The simple payload is just a string consisting of:
