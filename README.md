@@ -26,29 +26,6 @@ is now
 
 If the older message is sent, the timer will trigger but it will run with the default timer settings from the node and not the values passed in the JSON message.
 
-If the node property 'Warning state payload' is not set or the property 'Warning (sec)' is set to 0, then no warning message will be sent.
-
-If the timer is not currently running and a **stop** or **cancel** is sent to the timer, no output will be sent. An **on** will trigger the timer to begin running. If an **off** is sent while the timer is not running, an off message will be sent.
-
-Also I've added a second output which sends out the time left on the timer.
-
-```
-{"payload":30,"state":1,"flag":"ticks > 0"}
-or
-{"payload":10,"state":2,"flag":"warn >= ticks"}
-or
-{"payload":0,"state":0,"flag":"off"}
-or
-{"payload":-1,"state":0,"flag":"stop"}
-or
-{"payload":-1,"state":0,"flag":"cancel"}
-or
-{"payload": -1, "state": 0, "flag": "unknown"}
-```
-
-When the **off** is sent or timeout occurs, the output 2 message is the same.
-The **unknown** should never occur but is left in in case something breaks.
-
 ## myTimeout
 MyTimeout started as hacked timer code I stole from Pete Scargill. The code would start a timer running if you sent it any trigger (tickle the timer). It would continue to run if further triggers were sent before the timeout occurred. A trigger was anything sent to the input of the timer.
 
@@ -100,6 +77,10 @@ My additions to the code allows the user to send JSON in the triggers. You can o
 
 Ths "payload" behaves like the simple string payload above.
 
+If the node property 'Warning state payload' is not set or the property 'Warning (sec)' is set to 0, then no warning message will be sent.
+
+If the timer is not currently running and a **stop** or **cancel** is sent to the timer, no output will be sent. An **on** will trigger the timer to begin running. If an **off** is sent while the timer is not running, an off message will be sent.
+
 ### The second output
 This is a new feature in v2.x.x of node-red-contrib-mytimeout. It is the countdown information.
 
@@ -113,6 +94,25 @@ This is a new feature in v2.x.x of node-red-contrib-mytimeout. It is the countdo
 ```
 
 The "payload" is the number of seconds left on the timer, if 0 that means it is off, -1 means it was stopped, cancelled or the unknown has occurred.
+
+Also I've added a second output which sends out the time left on the timer.
+
+```
+{"payload":30,"state":1,"flag":"ticks > 0"}
+or
+{"payload":10,"state":2,"flag":"warn >= ticks"}
+or
+{"payload":0,"state":0,"flag":"off"}
+or
+{"payload":-1,"state":0,"flag":"stop"}
+or
+{"payload":-1,"state":0,"flag":"cancel"}
+or
+{"payload": -1, "state": 0, "flag": "unknown"}
+```
+
+hen the **off** is sent or timeout occurs, the output 2 message is the same.
+The **unknown** should never occur but is left in in case something breaks.
 
 ### Payload
 * **on** - turns on the timer. The addition fields *timeout* and *warning* are optional and allow the user to change the defaults. Both field values are integers and are in seconds. This payload will cause the timer to send a *Timer on payload* message in the msg.payload output
