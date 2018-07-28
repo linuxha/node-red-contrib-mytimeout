@@ -4,7 +4,7 @@ var lowerNode = require("../mytimeout.js");
 
 helper.init(require.resolve('node-red'));
 
-describe('mytimeout Node', function () {
+describe('mytimeout Node (don\'t trust these tests yet)', function () {
     
     afterEach(function () {
         helper.unload();
@@ -51,6 +51,11 @@ describe('mytimeout Node', function () {
             n1.receive({ payload: "off" });
         });
     });
+
+    // ***
+    // *** Here's where I need help
+    // ***
+    console.log("W're good up to here, then we go off the tracks");
     
     it('should make payload on/stop', function (done) {
         var flow = [
@@ -67,13 +72,35 @@ describe('mytimeout Node', function () {
             n1.receive({ payload: "on" });
 
             n2.on("input", function (msg) {
-                msg.should.have.property('payload', 'stopper');
+                msg.should.have.property('payload', 'failr'); // This should be stop
                 done();
             });
             n1.receive({ payload: "stop" });
         });
     });
 
+    /*
+    **
+home/test/countdown-out-b-txt {"payload":0,"state":0,"flag":"off"}
+home/test/countdown-out-a-txt {"payload":0,"state":0,"flag":"off"}
+home/test/countdown-out-c-txt {"payload":0,"state":0,"flag":"off"}
+home/test/countdown-out-D-txt {"payload":0,"state":0,"flag":"off"}
+home/test/countdown-out-b on
+home/test/countdown-out-b-txt {"payload":10,"state":1,"flag":"ticks > 0"}
+home/test/countdown-out-b-txt {"payload":9,"state":1,"flag":"ticks > 0"}
+home/test/countdown-out-b-txt {"payload":8,"state":1,"flag":"ticks > 0"}
+home/test/countdown-out-b-txt {"payload":7,"state":1,"flag":"ticks > 0"}
+home/test/countdown-out-b-txt {"payload":6,"state":1,"flag":"ticks > 0"}
+home/test/countdown-out-b warn
+home/test/countdown-out-b-txt {"payload":5,"state":2,"flag":"warn >= ticks"}
+home/test/countdown-out-b-txt {"payload":4,"state":2,"flag":"warn >= ticks"}
+home/test/countdown-out-b-txt {"payload":3,"state":2,"flag":"warn >= ticks"}
+home/test/countdown-out-b-txt {"payload":2,"state":2,"flag":"warn >= ticks"}
+home/test/countdown-out-b-txt {"payload":1,"state":2,"flag":"warn >= ticks"}
+home/test/countdown-out-b off
+home/test/countdown-out-b-txt {"payload":0,"state":0,"flag":"off"}
+    */
+    /*
     it('should make payload on and status', function (done) {
         
         var flow = [
@@ -103,29 +130,10 @@ describe('mytimeout Node', function () {
             n1.receive({ payload: "UpperCase" });
         });
     });
-
-    /*
-    **
-home/test/countdown-out-b-txt {"payload":0,"state":0,"flag":"off"}
-home/test/countdown-out-a-txt {"payload":0,"state":0,"flag":"off"}
-home/test/countdown-out-c-txt {"payload":0,"state":0,"flag":"off"}
-home/test/countdown-out-D-txt {"payload":0,"state":0,"flag":"off"}
-home/test/countdown-out-b on
-home/test/countdown-out-b-txt {"payload":10,"state":1,"flag":"ticks > 0"}
-home/test/countdown-out-b-txt {"payload":9,"state":1,"flag":"ticks > 0"}
-home/test/countdown-out-b-txt {"payload":8,"state":1,"flag":"ticks > 0"}
-home/test/countdown-out-b-txt {"payload":7,"state":1,"flag":"ticks > 0"}
-home/test/countdown-out-b-txt {"payload":6,"state":1,"flag":"ticks > 0"}
-home/test/countdown-out-b warn
-home/test/countdown-out-b-txt {"payload":5,"state":2,"flag":"warn >= ticks"}
-home/test/countdown-out-b-txt {"payload":4,"state":2,"flag":"warn >= ticks"}
-home/test/countdown-out-b-txt {"payload":3,"state":2,"flag":"warn >= ticks"}
-home/test/countdown-out-b-txt {"payload":2,"state":2,"flag":"warn >= ticks"}
-home/test/countdown-out-b-txt {"payload":1,"state":2,"flag":"warn >= ticks"}
-home/test/countdown-out-b off
-home/test/countdown-out-b-txt {"payload":0,"state":0,"flag":"off"}
     */
+
     console.log('Before: should make payload on and status (2nd)');
+    /*
     it('should make payload on and status (2nd)', function (done) {
         console.log('After:  should make payload on and status (2nd)');
         var flow = [
@@ -156,5 +164,5 @@ home/test/countdown-out-b-txt {"payload":0,"state":0,"flag":"off"}
             n1.receive({ payload: "UpperCase" });
         });
     });
-
+    */
 });
