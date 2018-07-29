@@ -3,7 +3,7 @@ Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending i
 
 Node-red-contrib-mytimeout can send and receive to the same topic (if the input matches the output and the message is skipped to avoid an endless loop).
 
-**Note:** Versions before **2.0.0** had incorrect code. The code has changed the input from *timer* to *timeout* to match the documentation.
+**Note:** Versions before **2.0.0** had incorrect code. The code has changed the input from /timer/ to /timeout/ to match the documentation.
 
 Was:
 
@@ -27,9 +27,9 @@ is now
 If the older message is sent, the timer will trigger but it will run with the default timer settings from the node and not the values passed in the JSON message.
 
 ## myTimeout
-MyTimeout started as hacked timer code I stole from Pete Scargill (his [node-red-contrib-timout](https://www.npmjs.com/package/node-red-contrib-timeout). I ended up rewriting the code after making a mess of it. The only parts that remain the same are the html, the color of the node icon (my timer is a bit different) and part of the name, And like Pete's timeout node you can start a timer running if you sent it any trigger (tickle the timer). It would continue to run if further triggers were sent before the timeout occurred. A trigger was anything sent to the input of the timer.
+MyTimeout started as hacked timer code I stole from Pete Scargill. The code would start a timer running if you sent it any trigger (tickle the timer). It would continue to run if further triggers were sent before the timeout occurred. A trigger was anything sent to the input of the timer.
 
-My code goes a few steps further. It allows you to tickle the timer, turn it off, stop it or cancel the timer. It also allows you to send JSON (see below) to override the timer, to turn off the timer or to cancel or stop the timer. It still retains some of Pete's behaviors. You can still send almost anything to tickle the timer with the exception of the JSON below which will cause the timer to do specific things.
+My code goes some steps further. It allows you to tickle the timer, turn it off, stop it or cancel the timer. It also allows you to send JSON (see below) to override the timer, to turn off the timer or to cancel or stop the timer. It still retains some of Pete's behaviors. You can still send almost anything to tickle the timer with the exception of the JSON below which will cause the timer to do specific things.
 
 You can configure the timeout module with the settings for the Safe and Unsafe messages. Safe is sent on the start of the timer, the unsafe message sent when the timeout occurs.
 
@@ -45,7 +45,7 @@ All of this is very useful for things like lights that are motion activated. If 
 
 If you set the warning seconds to 0 or leave the warning payload empty then the timer will skip sending a warning message and simply do a countdown. Setting the warning time in the JSON input to 0 will do the same thing.
 
-## MyTimeout
+## MyTimeout inputs
 The simple payload is just a string consisting of:
 
 * "on" or 1 - which turns on the timer and uses the default settings in the node (and issues an "on" on the output)
@@ -81,7 +81,10 @@ If the node property 'Warning state payload' is not set or the property 'Warning
 
 If the timer is not currently running and a **stop** or **cancel** is sent to the timer, no output will be sent. An **on** will trigger the timer to begin running. If an **off** is sent while the timer is not running, an off message will be sent.
 
-### The second output
+## The first output
+The first (primary) output sends msg.paylaod of on, off, warning or stop. An input of cancel, does not send any output.
+
+## The second output
 This is a new feature in v2.x.x of node-red-contrib-mytimeout. It is the countdown information.
 
 ```
@@ -111,7 +114,7 @@ or
 {"payload": -1, "state": 0, "flag": "unknown"}
 ```
 
-hen the **off** is sent or timeout occurs, the output 2 message is the same.
+Then the **off** is sent or timeout occurs, the output 2 message is the same.
 The **unknown** should never occur but is left in in case something breaks.
 
 ### Payload
@@ -135,5 +138,5 @@ output 1. They all stop the timer.
 
 I put together a [sample flow](https://flows.nodered.org/flow/a391edfb38b959122d2dd42242ddd950) that should help with using the node.
 
-# Testing
-I'm starting to incorporate [node-red-node-test-helper](https://www.npmjs.com/package/node-red-node-test-helper) into my test frame work. At the moment it has a few simple black box tests. I'm working to create a fully automated test suite that will verify the full functionality of the node. At the moment I'm not quite sure how to handle the second output (the count down information) and need to handle the multiple outputs of the first output.
+## Notes on usage
+One user setup 12 timers in one flow and began having issues (currently being investigated) with timers being left in the on state but not running. He moved each timer to it's own flow and gave each timer a unique name. I'm not sure if this is a usable work around but hope to test this soon.
