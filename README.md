@@ -45,7 +45,7 @@ All of this is very useful for things like lights that are motion activated. If 
 
 If you set the warning seconds to 0 or leave the warning payload empty then the timer will skip sending a warning message and simply do a countdown. Setting the warning time in the JSON input to 0 will do the same thing.
 
-## MyTimeout
+## MyTimeout inputs
 The simple payload is just a string consisting of:
 
 * "on" or 1 - which turns on the timer and uses the default settings in the node (and issues an "on" on the output)
@@ -81,7 +81,10 @@ If the node property 'Warning state payload' is not set or the property 'Warning
 
 If the timer is not currently running and a **stop** or **cancel** is sent to the timer, no output will be sent. An **on** will trigger the timer to begin running. If an **off** is sent while the timer is not running, an off message will be sent.
 
-### The second output
+## The first output
+The first (primary) output sends msg.paylaod of on, off, warning or stop. An input of cancel, does not send any output.
+
+## The second output
 This is a new feature in v2.x.x of node-red-contrib-mytimeout. It is the countdown information.
 
 ```
@@ -111,7 +114,7 @@ or
 {"payload": -1, "state": 0, "flag": "unknown"}
 ```
 
-hen the **off** is sent or timeout occurs, the output 2 message is the same.
+Then the **off** is sent or timeout occurs, the output 2 message is the same.
 The **unknown** should never occur but is left in in case something breaks.
 
 ### Payload
@@ -135,3 +138,5 @@ output 1. They all stop the timer.
 
 I put together a [sample flow](https://flows.nodered.org/flow/a391edfb38b959122d2dd42242ddd950) that should help with using the node.
 
+## Notes on usage
+One user setup 12 timers in one flow and began having issues (currently being investigated) with timers being left in the on state but not running. He moved each timer to it's own flow and gave each timer a unique name. I'm not sure if this is a usable work around but hope to test this soon.
