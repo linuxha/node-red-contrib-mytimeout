@@ -76,6 +76,13 @@ module.exports = function(RED) {
 
         RED.nodes.createNode(this, n);
 
+        //
+        function ndebug(s){
+            if(n.debug !== "0") {
+                node.log(s);
+            }
+        }
+
         // =====================================================================
         // There can be:
         // payload = "on" or 1 or "1" or anthing else except off/stop/cancel/debug
@@ -83,20 +90,20 @@ module.exports = function(RED) {
             // My intention is to move all the calculations for
             // these variables to here. At the moment they're all over
             // the place and confusing
-            node.log("    msg:        " + JSON.stringify(msg));
-            node.log("    msg:        " + typeof(msg));
-            node.log("    node.timer: " + node.timer);
-            node.log("    node.warn:  " + node.warn);
+            ndebug("    msg:        " + JSON.stringify(msg));
+            ndebug("    msg:        " + typeof(msg));
+            ndebug("    node.timer: " + node.timer);
+            ndebug("    node.warn:  " + node.warn);
             try {
-                node.log("    msg.timeout:" + msg.timeout);
-                node.log("    msg.warning:" + msg.warning);
+                ndebug("    msg.timeout:" + msg.timeout);
+                ndebug("    msg.warning:" + msg.warning);
             } catch(e) {
-                node.log("    msg.timeout:undefined");
-                node.log("    msg.warning:undefined");
+                ndebug("    msg.timeout:undefined");
+                ndebug("    msg.warning:undefined");
             }
-            node.log("    timeout:    " + timeout);
-            node.log("    warn:       " + warn);
-            node.log("    ticks:      " + ticks);
+            ndebug("    timeout:    " + timeout);
+            ndebug("    warn:       " + warn);
+            ndebug("    ticks:      " + ticks);
 
             //
             // There are 3 sets of variables
@@ -110,14 +117,14 @@ module.exports = function(RED) {
 
             ticks = timeout;
 
-            node.log("");
-            node.log("    node.timer: " + node.timer);
-            node.log("    node.warn:  " + node.warn);
-            node.log("    timeout:    " + timeout);
-            node.log("    warn:       " + warn);
-            node.log("    ticks:      " + ticks);
+            ndebug("");
+            ndebug("    node.timer: " + node.timer);
+            ndebug("    node.warn:  " + node.warn);
+            ndebug("    timeout:    " + timeout);
+            ndebug("    warn:       " + warn);
+            ndebug("    ticks:      " + ticks);
 
-            node.log("Count timer on");
+            ndebug("Count timer on");
             node.status({
                 fill  : "green",
                 shape : "dot",
@@ -127,7 +134,7 @@ module.exports = function(RED) {
             node.payload = node.outsafe;
 
             lastPayload = node.payload;
-            node.log("Send green: " + lastPayload);
+            ndebug("Send green: " + lastPayload);
             node.send([node, null]);
 
             state = 'run';
@@ -136,7 +143,7 @@ module.exports = function(RED) {
         } // on(msg)
 
         function off() {
-            node.log("off!");
+            ndebug("off!");
             ticks = -1;
             stop('off');
         } // off()
@@ -149,11 +156,11 @@ module.exports = function(RED) {
             // if the main input routine calls this function, it will pass an
             // object (the input msg) which we don't care about really
             if(typeof(s) !== "string") {
-                node.log("Empty stop");
+                ndebug("Empty stop");
                 s = 'stop';
             }
 
-            node.log(s + "! A");
+            ndebug(s + "! A");
             ticks = 0;
 
             node.status({
@@ -167,7 +174,7 @@ module.exports = function(RED) {
                 case 'stop':
                     node.payload = "stop";
                     lastPayload = node.payload;
-                    node.log("Send red: " + lastPayload);
+                    ndebug("Send red: " + lastPayload);
 
                     var tremain = { "payload": {"payload": -1, "state": 0, "flag": "stop"}};
                     node.send([node, tremain]);
@@ -176,21 +183,21 @@ module.exports = function(RED) {
                 case 'off':
                     node.payload = node.outunsafe;
                     lastPayload = node.payload;
-                    node.log("Send red: " + lastPayload);
+                    ndebug("Send red: " + lastPayload);
 
                     var tremain = { "payload": {"payload": 0, "state": 0, "flag": "off"}};
                     node.send([node, tremain]);
                     break;
 
                 case 'cancel':
-                    node.log("Send red: null");
+                    ndebug("Send red: null");
                     var tremain = { "payload": {"payload": -1, "state": 0, "flag": "cancel"}};
                     lastPayload = "";
                     node.send([null, tremain]);
                     break;
 
                 default:
-                    node.log("Send red: ???");
+                    ndebug("Send red: ???");
                     var tremain = { "payload": {"payload": -1, "state": 0, "flag": "unknown"}};
                     lastPayload = "";
                     node.send([null, tremain]);
@@ -202,17 +209,17 @@ module.exports = function(RED) {
             timeout = parseInt(node.timer);
             warn    = parseInt(node.warn);
 
-            node.log('=[ fini ]=======================================================================');
+            ndebug('=[ fini ]=======================================================================');
         }
 
         function cancel() {
-            node.log("cancel!");
+            ndebug("cancel!");
             stop('cancel');
             ticks = -1;
         }
 
         function doNothing() {
-            node.log("doNothing!");
+            ndebug("doNothing!");
             state = 'stop';
             ticks = -1;
         }
@@ -276,8 +283,8 @@ module.exports = function(RED) {
                     break;
 
                 default:
-                    node.log("??? msg  = " + JSON.stringify(msg));
-                    node.log("??? msg  = " + typeof(msg.payload));
+                    ndebug("??? msg  = " + JSON.stringify(msg));
+                    ndebug("??? msg  = " + typeof(msg.payload));
                     nMsg = { "payload": "" };
                     // x console.log("??? msg  = " + JSON.stringify(nMsg));
                     break;
@@ -350,7 +357,7 @@ module.exports = function(RED) {
                             node.payload = node.outwarn;
 
                             lastPayload = node.payload;
-                            node.log("Send yellow: " + lastPayload);
+                            ndebug("Send yellow: " + lastPayload);
                             node.send([node, null]);
                             wflag = true;
                         }
@@ -371,7 +378,7 @@ module.exports = function(RED) {
                 }
                 ticks--;
             } else if(ticks == 0){
-                node.log("ticks == 0");
+                ndebug("ticks == 0");
                 stop("off");
 
                 //var tremain = { "payload": {"payload": 0, "state": 0, "flag": "ticks == 0"}};
@@ -392,13 +399,13 @@ module.exports = function(RED) {
         node.on( "input", function(inMsg) {
             // inMsg = {"topic":"home/test/countdown-in-b","payload":"{ \"payload\":\"on\",\"timeout\":6,\"warning\":3}","qos":0,"retain":false,"_msgid":"10ea6e2f.68fb32"}
             // inMsg = {"topic":"home/test/countdown-in-b","payload":"on","qos":0,"retain":false,"_msgid":"fd875a01.526a68"}
-            node.log('=[ input ]======================================================================');
-            node.log('1 node.input("input");');
-            node.log("1 inMsg = " + JSON.stringify(inMsg));
-            node.log("1 State = " + state);
-            node.log("1 timeout = " + node.timer + " - node.timer");
-            node.log("1 timeout = " + timeout + " - timeout");
-            node.log("1 warning = " + node.warn);
+            ndebug('=[ input ]======================================================================');
+            ndebug('1 node.input("input");');
+            ndebug("1 inMsg = " + JSON.stringify(inMsg));
+            ndebug("1 State = " + state);
+            ndebug("1 timeout = " + node.timer + " - node.timer");
+            ndebug("1 timeout = " + timeout + " - timeout");
+            ndebug("1 warning = " + node.warn);
 
             // =================================================================
             // First we need to drop any message than matches the last message
@@ -425,8 +432,8 @@ module.exports = function(RED) {
             // We only send a simple message ('on', 'off', 'stop' or 'cancel')
             if(lastPayload === inMsg.payload) {
                 // So it's the same message as what was previously sent
-                node.log("4 TO: In == Out match, skip (" + lastPayload + "/" + inMsg.payload + ")");
-                node.log('=[ Skip ]=======================================================================');
+                ndebug("4 TO: In == Out match, skip (" + lastPayload + "/" + inMsg.payload + ")");
+                ndebug('=[ Skip ]=======================================================================');
                 return ; //
             }
 
@@ -479,7 +486,7 @@ if(0) {
             switch(typeof(inMsg.payload)) {
                 case "string":
                     // Argh! The object is inside the msg.payload
-                    node.log("5 TO: str " + inMsg.payload);
+                    ndebug("5 TO: str " + inMsg.payload);
 
                     // > var msg = {"payload":100}
                     // > /.*"payload".*/.test(msg.payload)
@@ -489,17 +496,17 @@ if(0) {
                     // > /.*"payload".*/.test(msg.payload)
                     // true
                     if(/.*"payload".*/.test(inMsg.payload)) {
-                        node.log("inMsg.payload = " + inMsg.payload);
+                        ndebug("inMsg.payload = " + inMsg.payload);
                         try {
                             //
                             // Convert the msg.payload to the inmsg.payload (string -> object)
-                            node.log("> inMsg typeof  = " + typeof(inMsg.payload));
+                            ndebug("> inMsg typeof  = " + typeof(inMsg.payload));
                             line = JSON.parse(inMsg.payload);
-                            node.log("< inMsg.payload = " + line);
-                            node.log("< inMsg typeof  = " + typeof(line));
+                            ndebug("< inMsg.payload = " + line);
+                            ndebug("< inMsg typeof  = " + typeof(line));
                         } catch(e) {
                             // Okay, now what do we do?
-                            node.log("countdown.js: payload string to object conversion failed");
+                            ndebug("countdown.js: payload string to object conversion failed");
                             line = inMsg.payload;
                         } /* */
                     } else {
@@ -508,17 +515,17 @@ if(0) {
                     break;
                 case "number":
                     // It's a number so nothing to do here
-                    node.log("5 TO: num " + inMsg.payload);
+                    ndebug("5 TO: num " + inMsg.payload);
                     line = inMsg.payload;
                     break;
                 case "object":
                     // it's an object, now we need to see what's in there
-                    node.log("5 TO: obj " + inMsg.payload);
-                    node.log("5aTO: " + JSON.stringify(inMsg.payload));
+                    ndebug("5 TO: obj " + inMsg.payload);
+                    ndebug("5aTO: " + JSON.stringify(inMsg.payload));
                     line = inMsg.payload;
                     break;
                 default:
-                    node.log("5 TO: ??? " + inMsg.payload);
+                    ndebug("5 TO: ??? " + inMsg.payload);
                     console.log("inMsg.payload isn't a string, a number or an object");
                     break;
             } // if((typeof(inMsg.payload) === "string")) {
@@ -541,7 +548,7 @@ if(0) {
             }
 } else {
             line = newMsg(inMsg);
-            node.log("line = " + JSON.stringify(line));
+            ndebug("line = " + JSON.stringify(line));
 }
 // ================================================================================
             var s = "nada";
@@ -562,8 +569,8 @@ if(0) {
                 // defaults
                 // And this get tricky
                 // =============================================================
-                node.log(s);
-                node.log("states catch: " + err + "(" + ticks + "/" + warn + ")");
+                ndebug(s);
+                ndebug("states catch: " + err + "(" + ticks + "/" + warn + ")");
                 // If it's not an existing state then treat it as an on
                 // that way anthing can be used as a kicker to keep the timer
                 // running
