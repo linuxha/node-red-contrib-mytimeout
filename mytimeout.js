@@ -71,6 +71,7 @@ module.exports = function(RED) {
 
         var timeout     = parseInt(n.timer||30);    // 
         var warn        = parseInt(n.warning||10);  // 
+        var debug       = parseInt(n.debug||0);     // This gave me trouble as just n.debug
 
         var line        = {};
 
@@ -78,10 +79,17 @@ module.exports = function(RED) {
 
         //
         function ndebug(s){
-            if(n.debug !== "0") {
-                node.log(s);
+            if(debug !== 0) {
+                node.log(s); // Can't use the obj this here, used obj node
             }
         }
+
+        // this.log("Debug = (" + n.debug + ")"); // Can't use the obj node here, use obj this
+        this.status({
+            fill  : "red",
+            shape : "dot",
+            text  : "Stopped: init"
+        });
 
         // =====================================================================
         // There can be:
