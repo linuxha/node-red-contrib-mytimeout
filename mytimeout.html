@@ -45,6 +45,14 @@
     <input style="width:15%" type="text" id="node-input-warning" placeholder="10">
   </div>
   
+
+  <div class="form-row">
+    <span style="width: 350px; float: left; margin-left: 5px;"><input type="checkbox" id="node-input-ndebug" placeholder="debug" > Debug logging</span>
+    <br/><br/>
+    <span style="width: 350px; float: left; margin-left: 5px;"><input type="checkbox" id="node-input-ignoreCase" placeholder="ignoreCase" > Ignore input case</span>
+  </div>
+
+<!--
   <div class="form-row">
     <label for="node-input-debug"><i class="fa fa-clock-o"></i> Debug loggin</label>
     <input style="width:15%" type="text" id="node-input-debug" placeholder="0">
@@ -107,7 +115,7 @@
 
     <pre><code>{
     "payload": "on",
-    "timeoute": 600,
+    "timeout": 600,
     "warning": 30
 }
 or
@@ -143,19 +151,22 @@ or
         inputLabels: "Any old input resets the timer",
         outputLabels: "Output message depends on state",
         defaults: {
-			name: { value:"My Timeout" },
-			outtopic: {value: "" },
-			outsafe: { value:"on" },
-			outwarning: { value: "Warning" },
-			outunsafe: { value:"off" },
-			warning: { value: "5" },
-			timer: { value:"30" },
-                        debug: { value: "0" },
-			repeat: { value:false },
-			again: { value:false }
+                name:       { value: "" },
+                outtopic:   { value: "" },
+                outsafe:    { value: "on", required: true },
+                outwarning: { value: "Warning" },
+                outunsafe:  { value: "off", required: true },
+                warning:    { value: "5" },
+                timer:      { value: "30", required: true },
+
+                debug:      { value: false },
+                ndebug:     { value: false },
+                ignoreCase: { value: false },
+                repeat:     { value: false },
+                again:      { value: false }
         },
-        inputs:1,
-        outputs:2,
+        inputs:  1,
+        outputs: 2,
         icon: "stopwatch.png",
         label: function() {
             return this.name||"mytimeout";
