@@ -64,7 +64,11 @@ module.exports = function(RED) {
       node-input-again
       node-input-atStart
     */
-    function countdownNode(n) {
+    var countdownNode = function(n) {
+        // Local variables
+        var node        = this;
+        
+        var state       = 'stop';
         var wflag       = false;
         var ticks       = -1;           //
         var lastPayload = 'not sent';   // 
@@ -74,8 +78,44 @@ module.exports = function(RED) {
         var debug       = parseInt(n.debug||0);     // This gave me trouble as just n.debug
 
         var line        = {};
+        var tMsg        = {}
+        var version     = '2.1.8 bf'; // this should go into 2.1.9 (bug-fix)
 
         RED.nodes.createNode(this, n);
+
+        // GUI variables
+        // @FIXME: Remove unused or unnecessary vars
+        node.timer     = parseInt(n.timer)||30; // Need to build checking into the html file
+        node.state     = 'stop';                // For now it's a string, later an object?
+        /*
+          This is the Edit dialog for this node
+          node properties
+          Name                      Countdown timer
+          Output Topic              topic <- if blank no output topic
+          Timer On payload          on
+          Warning state payload     Warning
+          Timer Off payload         off
+          Countdown (secs)          30
+          Warning (secs)            5
+
+          Rate Limit (msg/secs)     30
+          [ ] Repeat message every second <- This doesn't seem like a good idea (???)
+          [ ] Auto-restart when timed out
+          [ ] Run at start
+
+        */
+        node.name      = n.name;               // node-input-name       - Name
+        node.warn      = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
+        node.topic     = n.outtopic;           // node-input-outtopic   - Output topic
+        node.outsafe   = n.outsafe || "on";    // node-input-outsafe    - Timer on payload
+        node.outwarn   = n.outwarning;         // node-input-outwarning - Warning state payload
+        node.outunsafe = n.outunsafe || "off"; // node-input-outunsafe  - Timer off payload
+        //                                     // node-input-warning    - warning seconds
+        //                                     // node-input-timer      - countdown seconds
+        //                                     // node-input-repeat     - Rate limit seconds
+        node.repeat    = n.repeat;             // node-input-repeat     - Repeat message every second
+        node.again     = n.again;              // node-input-again      - Auto restart when timed out
+        node.atStart   = n.atStart;            // node-input-atStart    - Run at start
 
         //
         function ndebug(s){
@@ -139,11 +179,11 @@ module.exports = function(RED) {
                 text  : "Running: " + ticks // provide a visual countdown
             });
 
-            node.payload = node.outsafe;
+            msg.payload = node.outsafe;
 
-            lastPayload = node.payload;
+            lastPayload = msg.payload;
             ndebug("Send green: " + lastPayload);
-            node.send([node, null]);
+            node.send([msg, null]);
 
             state = 'run';
 
@@ -161,6 +201,10 @@ module.exports = function(RED) {
         // In: stop   out: stop
         // In: cancel out: (nothing)
         function stop(s) {
+            // The states are only called from the node.on("input", ...)
+            // That's where I define the line obj after I massage the incoming
+            // message
+            var msg = line;     // This is a biy of a risk, I'll leave it for now
             // if the main input routine calls this function, it will pass an
             // object (the input msg) which we don't care about really
             if(typeof(s) !== "string") {
@@ -180,21 +224,21 @@ module.exports = function(RED) {
             // Stop or off can send, not cancel
             switch(s) {
                 case 'stop':
-                    node.payload = "stop";
-                    lastPayload = node.payload;
+                    msg.payload = "stop";
+                    lastPayload = msg.payload;
                     ndebug("Send red: " + lastPayload);
 
                     var tremain = { "payload": {"payload": -1, "state": 0, "flag": "stop"}};
-                    node.send([node, tremain]);
+                    node.send([msg, tremain]);
                     break;
 
                 case 'off':
-                    node.payload = node.outunsafe;
-                    lastPayload = node.payload;
+                    msg.payload = node.outunsafe;
+                    lastPayload = msg.payload;
                     ndebug("Send red: " + lastPayload);
 
                     var tremain = { "payload": {"payload": 0, "state": 0, "flag": "off"}};
-                    node.send([node, tremain]);
+                    node.send([msg, tremain]);
                     break;
 
                 case 'cancel':
@@ -232,15 +276,19 @@ module.exports = function(RED) {
             ticks = -1;
         }
 
+        // @FIXME: This should return the original msg with as few changes as possible
         function newMsg(msg) {
-            var nMsg = msg;
+            var nMsg = Object.assign(msg, {});
 
             // x console.log("msg  = " + JSON.stringify(msg));
             // x console.log("nMsg = " + JSON.stringify(nMsg));
 
             switch(typeof(msg.payload)) {
                 case "string":
+                    ndebug("Str msg  = " + JSON.stringify(msg));
                     if(/.*"payload".*/.test(msg.payload)) {
+                        ndebug(" msg.payload  = " + JSON.stringify(msg));
+
                         // string contain payload, convery to JSON
                         //
                         // in   = {"payload":"{ \"payload\":\"on\",\"timeout\":6,\"warning\":0}","qos":0}
@@ -270,6 +318,7 @@ module.exports = function(RED) {
                     // x console.log("str msg  = " + JSON.stringify(nMsg.payload));
                     // x console.log("typeof   = " + typeof(nMsg.payload));
 
+                    // @FIXME: Need to also deal with timeout and warning
                     try{
                         nMsg.payload = nMsg.payload.toLowerCase();
                     } catch(e) {
@@ -278,77 +327,56 @@ module.exports = function(RED) {
                     break;
 
                 case "number":
+                    ndebug("Num msg  = " + JSON.stringify(msg));
                     nMsg.payload = msg.payload.toString();
                     // x console.log("num msg  = " + JSON.stringify(nMsg));
                     break;
 
                 case "object":
+                    ndebug("Obj msg  = " + JSON.stringify(msg));
+                    /*
+                       o1 = { "payload": "old", "_msgId": 1, "something": "else"};
+                       o2 = { "payload": "on", "timeout": 60, "warning": 10};
+                       Object.assign(o1, o2);
+                         { payload: 'on',
+                           _msgId: 1,
+                           something: 'else',
+                           timeout: 60,
+                           warning: 10 }
+                    */
                     // x console.log("obj msg  = " + JSON.stringify(msg));
-                    msg.payload = msg.payload.payload;
+                    //msg.payload = msg.payload.payload;
+                    msg = Object.assign(msg, msg.payload);
                     t = newMsg(msg);
-                    nMsg = t.payload;
+                    nMsg.payload = t.payload;
                     // x console.log("obj nmsg = " + JSON.stringify(nMsg));
                     break;
 
                 default:
                     ndebug("??? msg  = " + JSON.stringify(msg));
                     ndebug("??? msg  = " + typeof(msg.payload));
-                    nMsg = { "payload": "" };
+                    nMsg.payload = "";
                     // x console.log("??? msg  = " + JSON.stringify(nMsg));
                     break;
             }
-
+            ndebug("RTN msg  = " + JSON.stringify(nMsg));
             return(nMsg);
         }
 
+        // Leave this here, need the functions ref from above
         var states = {
             // Not sure if this is what I want in the long run but this is good for now
             stop: { 0: off, on: on, off: off, stop: doNothing, cancel: doNothing }, 
-            run:  { 0: off, on: on, off: off, stop: stop, cancel: cancel }, 
+            run:  { 0: off, on: on, off: off, stop: stop, cancel: cancel }
         };
-
-        var state = 'stop';
-
-        var node = this;
-
-        // GUI variables
-        node.timer     = parseInt(n.timer)||30;
-        node.state     = 'stop';                // For now it's a string, later an object?
-        /*
-          This is the Edit dialog for this node
-          node properties
-          Name                      Countdown timer
-          Output Topic              topic <- if blank no output topic
-          Timer On payload          on
-          Warning state payload     Warning
-          Timer Off payload         off
-          Countdown (secs)          30
-          Warning (secs)            5
-
-          Rate Limit (msg/secs)     30
-          [ ] Repeat message every second <- This doesn't seem like a good idea (???)
-          [ ] Auto-restart when timed out
-          [ ] Run at start
-
-        */
-        node.name      = n.name;               // node-input-name       - Name
-        node.warn      = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
-        node.topic     = n.outtopic;           // node-input-outtopic   - Output topic
-        node.outsafe   = n.outsafe || "on";    // node-input-outsafe    - Timer on payload
-        node.outwarn   = n.outwarning;         // node-input-outwarning - Warning state payload
-        node.outunsafe = n.outunsafe || "off"; // node-input-outunsafe  - Timer off payload
-        //                                     // node-input-warning    - warning seconds
-        //                                     // node-input-timer      - countdown seconds
-        //                                     // node-input-repeat     - Rate limit seconds
-        node.repeat    = n.repeat;             // node-input-repeat     - Repeat message every second
-        node.again     = n.again;              // node-input-again      - Auto restart when timed out
-        node.atStart   = n.atStart;            // node-input-atStart    - Run at start
 
         // -------------------------------------------------------------------------------
         // Commands
         // TIX
         node.on("TIX", function(inMsg) {
             lastPayload = "";
+            var msg = {};
+
             if(ticks > 0) {
                 // A blank outwarning means don't send
                 if((warn >= ticks) && (node.outwarn !== "")) {
@@ -362,11 +390,11 @@ module.exports = function(RED) {
                         });
 
                         if(!wflag) {
-                            node.payload = node.outwarn;
+                            msg.payload = node.outwarn;
 
-                            lastPayload = node.payload;
+                            lastPayload = msg.payload;
                             ndebug("Send yellow: " + lastPayload);
-                            node.send([node, null]);
+                            node.send([msg, null]);
                             wflag = true;
                         }
                     } // warn if there's a warn message
@@ -396,7 +424,7 @@ module.exports = function(RED) {
             } else {
                 // Do nothing
             }
-        });
+        }); // node.on("TIX", function {});
 
         // Stop         (initial state at start up and when not running)
         // On           (timer reset to default value and running, on sent)
@@ -445,140 +473,28 @@ module.exports = function(RED) {
                 return ; //
             }
 
-if(0) {
-            // =================================================================
-            // Okay now we need to deal with what just arrived
-            //
-            // We can have on of the following:
-            // 'any string' - trigger/retrigger the timer - start the timer, issue the On message
-            // 'clear' - being used in my debugging       - don't bother the timer, issue nothing
-            //
-            // Object or string (need to handle both)
-            // '{ "payload": "on", "timeout": 69, "warning": 15 }' - start the timer, issue the On message
-            // '{ "payload": "off" }'    - stop the timer, issue an 'off'
-            // '{ "payload": "stop" }'   - stop the timer, issue a 'stop'
-            // '{ "payload": "cancel" }' - stop the timer, issue nothing
-            // =================================================================
-            /*
-            ** Wow, this is ugly!
-            ** I can get a string, a number or an object
-            ** but the string can contain a payload (needs to be converted to JSON)
-            ** and then it can be a string, a number
-              > j = { "payload": 0 }
-                { payload: 0 }
-              > typeof(j.payload)
-                'number'
-              > 
-              > j = { "payload": "0" }
-                { payload: '0' }
-              > typeof(j.payload)
-                'string'
-              > 
-              > j = { "payload": "{ \"payload\":0}" }
-                { payload: '{ "payload":0}' }
-              > typeof(j.payload)
-                'string'
-              > 
-              > j = { "payload": {"payload": 0 }}
-                { payload: { payload: 0 } }
-              > typeof(j.payload)
-                'object'
-              > 
-              > j = { "payload": {"payload": "0" }}
-                { payload: { payload: '0' } }
-              > typeof(j.payload)
-                'object'
-              > 
-            */
-            // =================================================================
-            switch(typeof(inMsg.payload)) {
-                case "string":
-                    // Argh! The object is inside the msg.payload
-                    ndebug("5 TO: str " + inMsg.payload);
-
-                    // > var msg = {"payload":100}
-                    // > /.*"payload".*/.test(msg.payload)
-                    // false
-                    // > var msg = {"payload":'"payload":"on", "timeout":600,"warning":0}'} // this is a string not an object
-                    // undefined
-                    // > /.*"payload".*/.test(msg.payload)
-                    // true
-                    if(/.*"payload".*/.test(inMsg.payload)) {
-                        ndebug("inMsg.payload = " + inMsg.payload);
-                        try {
-                            //
-                            // Convert the msg.payload to the inmsg.payload (string -> object)
-                            ndebug("> inMsg typeof  = " + typeof(inMsg.payload));
-                            line = JSON.parse(inMsg.payload);
-                            ndebug("< inMsg.payload = " + line);
-                            ndebug("< inMsg typeof  = " + typeof(line));
-                        } catch(e) {
-                            // Okay, now what do we do?
-                            ndebug("countdown.js: payload string to object conversion failed");
-                            line = inMsg.payload;
-                        } /* */
-                    } else {
-                        line = inMsg;
-                    } // if(/.*"payload".*/.test(inMsg.payload))
-                    break;
-                case "number":
-                    // It's a number so nothing to do here
-                    ndebug("5 TO: num " + inMsg.payload);
-                    line = inMsg.payload;
-                    break;
-                case "object":
-                    // it's an object, now we need to see what's in there
-                    ndebug("5 TO: obj " + inMsg.payload);
-                    ndebug("5aTO: " + JSON.stringify(inMsg.payload));
-                    line = inMsg.payload;
-                    break;
-                default:
-                    ndebug("5 TO: ??? " + inMsg.payload);
-                    console.log("inMsg.payload isn't a string, a number or an object");
-                    break;
-            } // if((typeof(inMsg.payload) === "string")) {
-
-
-            if(line.payload === "on") {
-                // =============================================================
-                // 'on' - here is the only place where you can change the
-                // defaults
-                // And this get tricky
-                // =============================================================
-                ticks   = parseInt(timeout || node.timer);
-                timeout = ticks;
-                if(line.warning === "0") {
-                    // 0 is used to override the sending of a warning message
-                    warn = 0;
-                } else {
-                    warn = parseInt(warn || node.warn);
-                }
-            }
-} else {
             line = newMsg(inMsg);
             ndebug("line = " + JSON.stringify(line));
-}
+
 // ================================================================================
             var s = "nada";
             try {
                 if(typeof(line.payload) == 'string') {
-                    s = ("states catch: line " + line.payload);
+                    s = ("1 states catch: line \"" + line.payload);
                     states[state][line.payload](line);
                 } else {
                     // Hopefully I've converted all the input to a string and
                     // to lower case.
-                    s = ("states catch: line " + line.payload.payload);
+                    s = ("2 states catch: line  \"" + line.payload.payload);
                     states[state][line.payload.payload](line);
                 }
             } catch(err) {
                 // =============================================================
-                // @FIXME: Need this moved into the on() function
-                // 'on' - here is the only place where you can change the
-                // defaults
-                // And this get tricky
+                // Anything that is not an existing state/function is treated as
+                // an on request.
                 // =============================================================
-                ndebug(s);
-                ndebug("states catch: " + err + "(" + ticks + "/" + warn + ")");
+                ndebug(s  + " \" (this is not an error)");
+                ndebug("states catch: " + err + "(" + ticks + "/" + warn + " - this is not an error)");
                 // If it's not an existing state then treat it as an on
                 // that way anthing can be used as a kicker to keep the timer
                 // running
