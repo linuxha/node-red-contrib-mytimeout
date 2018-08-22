@@ -71,15 +71,15 @@ module.exports = function(RED) {
         var state       = 'stop';
         var wflag       = false;
         var ticks       = -1;           //
-        var lastPayload = 'not sent';   // 
+        var lastPayload = Date.now();;   // 
 
         var timeout     = parseInt(n.timer||30);    // 
         var warn        = parseInt(n.warning||10);  // 
-        var debug       = parseInt(n.debug||0);     // This gave me trouble as just n.debug
+
+        var ignoreCase  = '';
 
         var line        = {};
-        var tMsg        = {}
-        var version     = '2.1.8 bf'; // this should go into 2.1.9 (bug-fix)
+        var version     = '2.2.0'; // ignoreCase featuer and change debug to check box
 
         RED.nodes.createNode(this, n);
 
@@ -119,12 +119,17 @@ module.exports = function(RED) {
 
         //
         function ndebug(s){
-            if(debug !== 0) {
+            // debug is either true or false
+            if(n.ndebug) {      // only if true do we debug
                 node.log(s); // Can't use the obj this here, used obj node
             }
         }
 
-        // this.log("Debug = (" + n.debug + ")"); // Can't use the obj node here, use obj this
+        if(n.ignoreCase) {      // Only if true do we ignore case
+            ignoreCase = 'i';
+        }
+
+        // this.log("Debug = (" + n.ndebug + ")"); // Can't use the obj node here, use obj this
         this.status({
             fill  : "red",
             shape : "dot",
@@ -138,21 +143,22 @@ module.exports = function(RED) {
             // My intention is to move all the calculations for
             // these variables to here. At the moment they're all over
             // the place and confusing
-            ndebug("    msg:        " + JSON.stringify(msg));
-            ndebug("    msg:        " + typeof(msg));
-            ndebug("    node.timer: " + node.timer);
-            ndebug("    node.warn:  " + node.warn);
-            try {
-                ndebug("    msg.timeout:" + msg.timeout);
-                ndebug("    msg.warning:" + msg.warning);
-            } catch(e) {
-                ndebug("    msg.timeout:undefined");
-                ndebug("    msg.warning:undefined");
+            if(n.ndebug) {
+                ndebug("    msg:        " + JSON.stringify(msg));
+                ndebug("    msg:        " + typeof(msg));
+                ndebug("    node.timer: " + node.timer);
+                ndebug("    node.warn:  " + node.warn);
+                try {
+                    ndebug("    msg.timeout:" + msg.timeout);
+                    ndebug("    msg.warning:" + msg.warning);
+                } catch(e) {
+                    ndebug("    msg.timeout:undefined");
+                    ndebug("    msg.warning:undefined");
+                }
+                ndebug("    timeout:    " + timeout);
+                ndebug("    warn:       " + warn);
+                ndebug("    ticks:      " + ticks);
             }
-            ndebug("    timeout:    " + timeout);
-            ndebug("    warn:       " + warn);
-            ndebug("    ticks:      " + ticks);
-
             //
             // There are 3 sets of variables
             // default values (node.timer, node.warn)
@@ -165,14 +171,16 @@ module.exports = function(RED) {
 
             ticks = timeout;
 
-            ndebug("");
-            ndebug("    node.timer: " + node.timer);
-            ndebug("    node.warn:  " + node.warn);
-            ndebug("    timeout:    " + timeout);
-            ndebug("    warn:       " + warn);
-            ndebug("    ticks:      " + ticks);
+            if(n.ndebug) {
+                ndebug("");
+                ndebug("    node.timer: " + node.timer);
+                ndebug("    node.warn:  " + node.warn);
+                ndebug("    timeout:    " + timeout);
+                ndebug("    warn:       " + warn);
+                ndebug("    ticks:      " + ticks);
 
-            ndebug("Count timer on");
+                ndebug("Count timer on");
+            }
             node.status({
                 fill  : "green",
                 shape : "dot",
@@ -244,14 +252,14 @@ module.exports = function(RED) {
                 case 'cancel':
                     ndebug("Send red: null");
                     var tremain = { "payload": {"payload": -1, "state": 0, "flag": "cancel"}};
-                    lastPayload = "";
+                    lastPayload = Date.now();
                     node.send([null, tremain]);
                     break;
 
                 default:
                     ndebug("Send red: ???");
                     var tremain = { "payload": {"payload": -1, "state": 0, "flag": "unknown"}};
-                    lastPayload = "";
+                    lastPayload = Date.now();
                     node.send([null, tremain]);
                     break;
             }
@@ -374,7 +382,7 @@ module.exports = function(RED) {
         // Commands
         // TIX
         node.on("TIX", function(inMsg) {
-            lastPayload = "";
+            lastPayload = Date.now();
             var msg = {};
 
             if(ticks > 0) {
@@ -435,14 +443,15 @@ module.exports = function(RED) {
         node.on( "input", function(inMsg) {
             // inMsg = {"topic":"home/test/countdown-in-b","payload":"{ \"payload\":\"on\",\"timeout\":6,\"warning\":3}","qos":0,"retain":false,"_msgid":"10ea6e2f.68fb32"}
             // inMsg = {"topic":"home/test/countdown-in-b","payload":"on","qos":0,"retain":false,"_msgid":"fd875a01.526a68"}
-            ndebug('=[ input ]======================================================================');
-            ndebug('1 node.input("input");');
-            ndebug("1 inMsg = " + JSON.stringify(inMsg));
-            ndebug("1 State = " + state);
-            ndebug("1 timeout = " + node.timer + " - node.timer");
-            ndebug("1 timeout = " + timeout + " - timeout");
-            ndebug("1 warning = " + node.warn);
-
+            if(n.ndebug) {
+                ndebug('=[ input ]======================================================================');
+                ndebug('1 node.input("input");');
+                ndebug("1 inMsg = " + JSON.stringify(inMsg));
+                ndebug("1 State = " + state);
+                ndebug("1 timeout = " + node.timer + " - node.timer");
+                ndebug("1 timeout = " + timeout + " - timeout");
+                ndebug("1 warning = " + node.warn);
+            }
             // =================================================================
             // First we need to drop any message than matches the last message
             // sent. This will keep us from getting into an infinite loop.
@@ -466,10 +475,13 @@ module.exports = function(RED) {
             // If the timer goes off then the lastPayload should be cleared
 
             // We only send a simple message ('on', 'off', 'stop' or 'cancel')
-            if(lastPayload === inMsg.payload) {
+            var regex = new RegExp('^' + lastPayload + '$', ignoreCase);
+            //if(lastPayload === inMsg.payload) {
+            if(regex.test(inMsg.payload)) {
                 // So it's the same message as what was previously sent
                 ndebug("4 TO: In == Out match, skip (" + lastPayload + "/" + inMsg.payload + ")");
                 ndebug('=[ Skip ]=======================================================================');
+                lastPayload = Date.now();
                 return ; //
             }
 
