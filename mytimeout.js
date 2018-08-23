@@ -351,6 +351,13 @@ module.exports = function(RED) {
                            something: 'else',
                            timeout: 60,
                            warning: 10 }
+
+                       msg = { payload: [ 50, 20 ] };
+                         { payload: [ 50, 20 ] }
+                       typeof(msg)
+                         'object'
+                       typeof(msg.payload)
+                         'object' <-- This is an issue
                     */
                     // x console.log("obj msg  = " + JSON.stringify(msg));
                     //msg.payload = msg.payload.payload;
@@ -485,7 +492,13 @@ module.exports = function(RED) {
                 return ; //
             }
 
-            line = newMsg(inMsg);
+            try {
+                line = newMsg(inMsg);
+            } catch (err) {
+                // Basically treat the unknown payload as an on (i.e. anything can
+                // tickle the timer as long as it's not off, 0, stop or cancel)
+                node.warn("L495: newMsg(inMsg): " + err + " <" + JSON.stringify(inMsg) + ">");
+            }
             ndebug("line = " + JSON.stringify(line));
 
 // ================================================================================
