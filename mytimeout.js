@@ -79,7 +79,7 @@ module.exports = function(RED) {
         var ignoreCase  = '';
 
         var line        = {};
-        var version     = '2.2.0'; // ignoreCase featuer and change debug to check box
+        var version     = '2.2.1'; // deploy fix in the html file
 
         RED.nodes.createNode(this, n);
 
