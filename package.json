@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-mytimeout",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "A timer that supports setting the run time by passing JSON to the input",
   "main": "mytimeout.js",
   "scripts": {
