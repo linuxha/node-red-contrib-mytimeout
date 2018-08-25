@@ -79,7 +79,7 @@ module.exports = function(RED) {
         var ignoreCase  = '';
 
         var line        = {};
-        var version     = '2.2.1'; // deploy fix in the html file
+        var version     = '2.2.2'; // deploy  incoming exception as on payload
 
         RED.nodes.createNode(this, n);
 

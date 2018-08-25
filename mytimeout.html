@@ -78,8 +78,6 @@
 <script type="text/x-red" data-help-name="mytimeout">
     <h3>myTimeout</h3>
 
-    <p> This documentation really needs work!</p>
-
     <p> A simple timeout node, "on" starts the timer and sends out the
 	"Timer on payload" (on) message. Every additional "on" will
 	send an additional "Timer on payload" message on output 1. If
@@ -108,6 +106,10 @@
         <li>JSON in the msg.payload (see below)</li>
     </ul>
 
+    <p> <b>Please note:</b> The countdown and warning values must be
+        whole, integer numbers. Using floating point numbers can cause
+        the timer to not send the appropriate off state payload.</p>
+
     <h3>JSON input</h3>
 
     <p> You can override the user's default settings by send a JSON
@@ -130,6 +132,10 @@ or
 {
     "payload": "cancel"
 }</code></pre>
+
+    <p> <b>Please note:</b> The timeout and warning values must be
+        whole, integer numbers. Using floating point numbers can cause
+        the timer to not send the appropriate off state payload.</p>
 
     <ul>
       <li>on - turns on the timer and runs for timeout and warns at warning (all 3 fields are required) and sends an on as the msg.payload</li>

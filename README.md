@@ -38,8 +38,10 @@ You can configure the timeout module with the settings for the Safe and Unsafe m
 * On state payload
 * Warning state payload
 * Off state payload
-* Countdown (sec)
-* Warning (sec)
+* Countdown (sec, integer)
+* Warning (sec, integer)
+
+**Please note:** The countdown and warning values must be whole, integer numbers. Using floating point numbers can cause the timer to not send the appropriate off state payload.
 
 All of this is very useful for things like lights that are motion activated. If motion is detected, the Safe payload is sent (On or 1). The timer can be started when motion is detected and as long as the motion continues there will be no timeout (if motion occurs more often than the default timeout). When the timeout occurs the Unsafe payload is sent (Off or 0). When the timeout warning time (n seconds before the timeout) occurs the warning message is sent on output 1.
 
@@ -75,6 +77,8 @@ My additions to the code allows the user to send JSON in the triggers. You can o
 }
 ```
 
+**Please note:** The timeout and warning values must be whole, integer numbers. Using floating point numbers can cause the timer to not send the appropriate off state payload.
+
 Ths "payload" behaves like the simple string payload above.
 
 If the node property 'Warning state payload' is not set or the property 'Warning (sec)' is set to 0, then no warning message will be sent.
@@ -85,7 +89,7 @@ If the timer is not currently running and a **stop** or **cancel** is sent to th
 The first (primary) output sends msg.paylaod of on, off, warning or stop. An input of cancel, does not send any output.
 
 ## The second output
-This is a new feature in v2.x.x of node-red-contrib-mytimeout. It is the countdown information.
+This is a new feature in v2.0.0 of node-red-contrib-mytimeout. It is the countdown information.
 
 ```
 {"payload":30,"state":1,"flag":"ticks > 0"}
@@ -140,3 +144,7 @@ I put together a [sample flow](https://flows.nodered.org/flow/a391edfb38b959122d
 
 ## Notes on usage
 One user setup 12 timers in one flow and began having issues (currently being investigated) with timers being left in the on state but not running. He moved each timer to it's own flow and gave each timer a unique name. I'm not sure if this is a usable work around but hope to test this soon.
+
+# Todo
+- Force accepted values to integer
+- Add input checking on the config page
