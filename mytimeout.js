@@ -79,7 +79,7 @@ module.exports = function(RED) {
         var ignoreCase  = '';
 
         var line        = {};
-        var version     = '3.0.0'; // deploy  incoming exception as on payload
+        var version     = '3.0.1'; // deploy  incoming exception as on payload
 
         RED.nodes.createNode(this, n);
 
@@ -105,7 +105,7 @@ module.exports = function(RED) {
 
         */
         node.name      = n.name;               // node-input-name       - Name
-        node.warn      = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
+        node.warnT     = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
         node.topic     = n.outtopic;           // node-input-outtopic   - Output topic
         node.outsafe   = n.outsafe || "on";    // node-input-outsafe    - Timer on payload
         node.outwarn   = n.outwarning;         // node-input-outwarning - Warning state payload
@@ -147,7 +147,7 @@ module.exports = function(RED) {
                 ndebug("    msg:        " + JSON.stringify(msg));
                 ndebug("    msg:        " + typeof(msg));
                 ndebug("    node.timer: " + node.timer);
-                ndebug("    node.warn:  " + node.warn);
+                ndebug("    node.warnT: " + node.warnT);
                 try {
                     ndebug("    msg.timeout:" + msg.timeout);
                     ndebug("    msg.warning:" + msg.warning);
@@ -161,20 +161,20 @@ module.exports = function(RED) {
             }
             //
             // There are 3 sets of variables
-            // default values (node.timer, node.warn)
+            // default values (node.timer, node.warnT)
             // passed values  (timeout, warn - if any)
             // running values (ticks)
             //
-            ticks   = msg.timeout||timeout||node.timer;
+            //ticks   = msg.timeout||timeout||node.timer; // Unnecessary
             timeout = msg.timeout||timeout||node.timer;
-            warn    = msg.warning||warn||node.warn;
+            warn    = msg.warning||warn||node.warnT;
 
             ticks = timeout;
 
             if(n.ndebug) {
                 ndebug("");
                 ndebug("    node.timer: " + node.timer);
-                ndebug("    node.warn:  " + node.warn);
+                ndebug("    node.warnT: " + node.warnT);
                 ndebug("    timeout:    " + timeout);
                 ndebug("    warn:       " + warn);
                 ndebug("    ticks:      " + ticks);
@@ -267,7 +267,7 @@ module.exports = function(RED) {
             state = 'stop';
             ticks = -1;
             timeout = parseInt(node.timer);
-            warn    = parseInt(node.warn);
+            warn    = parseInt(node.warnT);
 
             ndebug('=[ fini ]=======================================================================');
         }
@@ -457,7 +457,7 @@ module.exports = function(RED) {
                 ndebug("1 State = " + state);
                 ndebug("1 timeout = " + node.timer + " - node.timer");
                 ndebug("1 timeout = " + timeout + " - timeout");
-                ndebug("1 warning = " + node.warn);
+                ndebug("1 warning = " + node.warnT);
             }
             // =================================================================
             // First we need to drop any message than matches the last message
