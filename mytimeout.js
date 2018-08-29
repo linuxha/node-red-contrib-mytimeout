@@ -79,7 +79,7 @@ module.exports = function(RED) {
         var ignoreCase  = '';
 
         var line        = {};
-        var version     = '2.2.2'; // deploy  incoming exception as on payload
+        var version     = '3.0.0'; // deploy  incoming exception as on payload
 
         RED.nodes.createNode(this, n);
 
@@ -236,7 +236,7 @@ module.exports = function(RED) {
                     lastPayload = msg.payload;
                     ndebug("Send red: " + lastPayload);
 
-                    var tremain = { "payload": {"payload": -1, "state": 0, "flag": "stop"}};
+                    var tremain = {"payload": -1, "state": 0, "flag": "stop"};
                     node.send([msg, tremain]);
                     break;
 
@@ -245,20 +245,20 @@ module.exports = function(RED) {
                     lastPayload = msg.payload;
                     ndebug("Send red: " + lastPayload);
 
-                    var tremain = { "payload": {"payload": 0, "state": 0, "flag": "off"}};
+                    var tremain = { "payload": 0, "state": 0, "flag": "off"};
                     node.send([msg, tremain]);
                     break;
 
                 case 'cancel':
                     ndebug("Send red: null");
-                    var tremain = { "payload": {"payload": -1, "state": 0, "flag": "cancel"}};
+                    var tremain = { "payload": -1, "state": 0, "flag": "cancel"};
                     lastPayload = Date.now();
                     node.send([null, tremain]);
                     break;
 
                 default:
                     ndebug("Send red: ???");
-                    var tremain = { "payload": {"payload": -1, "state": 0, "flag": "unknown"}};
+                    var tremain = { "payload": -1, "state": 0, "flag": "unknown"};
                     lastPayload = Date.now();
                     node.send([null, tremain]);
                     break;
@@ -414,7 +414,7 @@ module.exports = function(RED) {
                         }
                     } // warn if there's a warn message
 
-                    var tremain = { "payload": {"payload": ticks, "state": 2, "flag": "warn >= ticks"}};
+                    var tremain = { "payload": ticks, "state": 2, "flag": "warn >= ticks"};
                     node.send([null, tremain]);
                 } else {
                     // HOW does this get sent out?
@@ -424,7 +424,7 @@ module.exports = function(RED) {
                         text  : "Running: " + ticks // provide a visual countdown
                     });
 
-                    var tremain = { "payload": {"payload": ticks, "state": 1, "flag": "ticks > 0"}};
+                    var tremain = { "payload": ticks, "state": 1, "flag": "ticks > 0"};
                     node.send([null, tremain]);
                 }
                 ticks--;
@@ -432,7 +432,7 @@ module.exports = function(RED) {
                 ndebug("ticks == 0");
                 stop("off");
 
-                //var tremain = { "payload": {"payload": 0, "state": 0, "flag": "ticks == 0"}};
+                //var tremain = { "payload": 0, "state": 0, "flag": "ticks == 0"}};
                 //node.send([null, tremain]);
 
                 ticks = -1;

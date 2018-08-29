@@ -3,28 +3,30 @@ Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending i
 
 Node-red-contrib-mytimeout can send and receive to the same topic (if the input matches the output and the message is skipped to avoid an endless loop).
 
-**Note:** Versions before **2.0.0** had incorrect code. The code has changed the input from /timer/ to /timeout/ to match the documentation.
+**Note:** Versions before **3.0.0** had incorrect code. The code has changed the output 2 from:
 
 Was:
 
 ```
-{
-    "payload": "on",
-    "timer": 3600,
-    "warning": 300
+msg = {
+    "payload": {
+        "payload":30,
+        "state":1,
+        "flag":"ticks > 0"
+    }
 }
 ```
 is now
 
 ```
-{
-    "payload": "on",
-    "timeout": 3600,
-    "warning": 300
+msg = {
+    "payload":30,
+    "state":1,
+    "flag":"ticks > 0"
 }
 ```
 
-If the older message is sent, the timer will trigger but it will run with the default timer settings from the node and not the values passed in the JSON message.
+This change now matches the documentation below.
 
 ## myTimeout
 MyTimeout started as hacked timer code I stole from Pete Scargill. The code would start a timer running if you sent it any trigger (tickle the timer). It would continue to run if further triggers were sent before the timeout occurred. A trigger was anything sent to the input of the timer.
