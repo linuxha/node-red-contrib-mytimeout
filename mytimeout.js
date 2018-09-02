@@ -577,8 +577,9 @@ module.exports = function(RED) {
         // Once the node is instantiated this keeps running
         // I'd like to change this to run when only needed
         function startInterval() {
+          var msg = { payload:'TIX', topic:""};
+          node.emit("TIX", msg);
           tick = setInterval(function() {
-              var msg = { payload:'TIX', topic:""};
               node.emit("TIX", msg);
           }, 1000); // trigger every 1 sec
         }
