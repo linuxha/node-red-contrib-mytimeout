@@ -288,14 +288,15 @@ module.exports = function(RED) {
             pauseValue = null;
         }
 
-        function pause() {
+        function pause(susp) {
+            var suspend = susp.payload == "suspend" ? true : false;
             ndebug("pause function!");
             pauseValue = [ticks, node.warnT];
 
             timeout = ticks;
             var msg = line;
             node.status({
-                fill  : "red",
+                fill  : "grey",
                 shape : "dot",
                 text  : `Paused: ${ticks}` // provide a visual countdown
             });
@@ -303,22 +304,22 @@ module.exports = function(RED) {
             msg.payload = "pause";
             lastPayload = msg.payload;
 
-            var tremain = { "payload": ticks, "state": "paused", "flag": "pause"};
-            node.send([msg, tremain]);
-
             state = 'pause';
-            if (tick !== null) {
+            if (tick !== null && !suspend) {
+                var tremain = { "payload": ticks, "state": 0, "flag": "pause"};
                 clearInterval(tick);
                 tick = null;
             }
+            node.send([msg, tremain]);
         }
 
-        function unpause() {
+        function unpause(msg) {
             ndebug("unpause!");
-            var pausemsg = {
-              timeout: pauseValue[0],
-              warning: pauseValue[1]
-            }
+
+              var pausemsg = {
+                timeout: pauseValue[0],
+                warning: pauseValue[1]
+              }
             on(pausemsg);
         }
 
@@ -425,15 +426,15 @@ module.exports = function(RED) {
         // Leave this here, need the functions ref from above
         var states = {
             // Not sure if this is what I want in the long run but this is good for now
-            stop: { 0: off, on: on, pause: off, off: off, stop: doNothing, cancel: doNothing },
-            pause: { 0: off, on: unpause, pause: pause, off: off, stop: stop, cancel: cancel },
-            run:  { 0: off, on: on, pause: pause, off: off, stop: stop, cancel: cancel }
+            stop: { 0: off, on: on, pause: on, suspend: off, off: off, stop: doNothing, cancel: doNothing },
+            pause: { 0: off, on: on, pause: unpause, suspend: unpause, off: off, stop: stop, cancel: cancel },
+            run:  { 0: off, on: on, pause: pause, suspend: pause, off: off, stop: stop, cancel: cancel }
         };
 
         // -------------------------------------------------------------------------------
         // Commands
         // TIX
-        node.on("TIX", function(inMsg) {
+        node.on("TIX", function(inMsg, state) {
             lastPayload = Date.now();
             var msg = {};
 
@@ -472,7 +473,8 @@ module.exports = function(RED) {
                     var tremain = { "payload": ticks, "state": 1, "flag": "ticks > 0"};
                     node.send([null, tremain]);
                 }
-                ticks--;
+                //decrement ticks, but if paused, stop decrementing
+                state !== "pause" ? ticks-- : '';
             } else if(ticks == 0){
                 ndebug("ticks == 0");
                 stop("off");
@@ -578,9 +580,9 @@ module.exports = function(RED) {
         // I'd like to change this to run when only needed
         function startInterval() {
           var msg = { payload:'TIX', topic:""};
-          node.emit("TIX", msg);
+          node.emit("TIX", msg, state);
           tick = setInterval(function() {
-              node.emit("TIX", msg);
+              node.emit("TIX", msg, state);
           }, 1000); // trigger every 1 sec
         }
         node.on("close", function() {
