@@ -79,13 +79,13 @@ module.exports = function(RED) {
         var ignoreCase  = '';
 
         var line        = {};
-        var version     = '3.0.1'; // deploy  incoming exception as on payload
+        var version     = '3.0.2'; // deploy  incoming exception as on payload
 
         RED.nodes.createNode(this, n);
 
         // GUI variables
         // @FIXME: Remove unused or unnecessary vars
-        node.timer     = parseInt(n.timer)||30; // Need to build checking into the html file
+        node.timer     = parseInt(n.timer||30); // Need to build checking into the html file
         node.state     = 'stop';                // For now it's a string, later an object?
         /*
           This is the Edit dialog for this node
@@ -165,9 +165,10 @@ module.exports = function(RED) {
             // passed values  (timeout, warn - if any)
             // running values (ticks)
             //
-            //ticks   = msg.timeout||timeout||node.timer; // Unnecessary
             timeout = msg.timeout||timeout||node.timer;
+            timeout = parseInt(timeout);                // ncherry@linuxha.com parseInt()
             warn    = msg.warning||warn||node.warnT;
+            warn    = parseInt(warn);                   // ncherry@linuxha.com parseInt()
 
             ticks = timeout;
 
@@ -444,7 +445,7 @@ module.exports = function(RED) {
         // Stop         (initial state at start up and when not running)
         // On           (timer reset to default value and running, on sent)
         // Off          (timer off, off sent, return to Stop)
-        // CANCEL       (timer off, nothing sent, return to Stop)
+        // Cancel       (timer off, nothing sent, return to Stop)
         // Warning      (timer still on, warning sent)
         // Timeout      (timer off, off sent, return to Stop
         node.on( "input", function(inMsg) {
