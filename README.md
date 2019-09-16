@@ -92,9 +92,20 @@ If the timer is not currently running and a **stop** or **cancel** is sent to th
 ## The first output
 The first (primary) output sends msg.payload of on, off, warning or stop. An input of cancel, does not send any output.
 
+```
+{
+    "_msgid":"eed69e39.50a2a",
+    "topic":"",
+    "payload":"off"
+}
+```
+
+Here is an off example.
+
 ## The second output
 This is a new feature in v2.0.0 of node-red-contrib-mytimeout. It is the countdown information.
 
+Example output:
 ```
 {"payload":30,"state":1,"flag":"ticks > 0"}
 {"payload":5,"state":2,"flag":"warn >= ticks"}
@@ -132,6 +143,16 @@ The states are:
 
 If you find any other state, open an issue.
 [node-red-contrib-mytimeout Issues](https://github.com/linuxha/node-red-contrib-mytimeout/issues)
+
+Actual output:
+```
+{
+    "payload":4,
+    "state":2,
+    "flag":"warn >= ticks",
+    "_msgid":"17b809b8.85c0d6"
+}
+```
 
 ### Payload
 * **on** - turns on the timer. The addition fields *timeout* and *warning* are optional and allow the user to change the defaults. Both field values are integers and are in seconds. This payload will cause the timer to send a *Timer on payload* message in the msg.payload output
