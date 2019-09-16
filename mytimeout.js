@@ -189,7 +189,7 @@ module.exports = function(RED) {
             });
 
             msg.payload = node.outsafe;
-
+            msg.topic = node.topic;
             lastPayload = msg.payload;
             ndebug("Send green: " + lastPayload);
             node.send([msg, null]);
@@ -243,6 +243,7 @@ module.exports = function(RED) {
 
                 case 'off':
                     msg.payload = node.outunsafe;
+                    msg.topic = node.topic;
                     lastPayload = msg.payload;
                     ndebug("Send red: " + lastPayload);
 
@@ -407,7 +408,7 @@ module.exports = function(RED) {
 
                         if(!wflag) {
                             msg.payload = node.outwarn;
-
+                            msg.topic = node.topic;
                             lastPayload = msg.payload;
                             ndebug("Send yellow: " + lastPayload);
                             node.send([msg, null]);
