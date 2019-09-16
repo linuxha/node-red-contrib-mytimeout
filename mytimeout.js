@@ -79,12 +79,11 @@ module.exports = function(RED) {
         var ignoreCase  = '';
 
         var line        = {};
-        var version     = '3.0.2'; // deploy  incoming exception as on payload
+        var version     = '3.1.0'; // deploy  incoming exception as on payload
 
         RED.nodes.createNode(this, n);
 
         // GUI variables
-        // @FIXME: Remove unused or unnecessary vars
         node.timer     = parseInt(n.timer||30); // Need to build checking into the html file
         node.state     = 'stop';                // For now it's a string, later an object?
         /*
@@ -286,7 +285,7 @@ module.exports = function(RED) {
             ticks = -1;
         }
 
-        // @FIXME: This should return the original msg with as few changes as possible
+        // @TODO: This should return the original msg with as few changes as possible
         function newMsg(msg) {
             var nMsg = Object.assign(msg, {});
 
@@ -328,7 +327,7 @@ module.exports = function(RED) {
                     // x console.log("str msg  = " + JSON.stringify(nMsg.payload));
                     // x console.log("typeof   = " + typeof(nMsg.payload));
 
-                    // @FIXME: Need to also deal with timeout and warning
+                    // 
                     try{
                         nMsg.payload = nMsg.payload.toLowerCase();
                     } catch(e) {
