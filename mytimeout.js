@@ -79,7 +79,7 @@ module.exports = function(RED) {
         var ignoreCase  = '';
 
         var line        = {};
-        var version     = '3.1.0'; // deploy  incoming exception as on payload
+        var version     = '3.1.0+fc1'; // deploy  incoming exception as on payload @FEATURE: no on msg
 
         RED.nodes.createNode(this, n);
 
@@ -106,7 +106,7 @@ module.exports = function(RED) {
         node.name      = n.name;               // node-input-name       - Name
         node.warnT     = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
         node.topic     = n.outtopic;           // node-input-outtopic   - Output topic
-        node.outsafe   = n.outsafe || "on";    // node-input-outsafe    - Timer on payload
+        node.outsafe   = n.outsafe;            // node-input-outsafe    - Timer on payload // @FEATURE: no on msg
         node.outwarn   = n.outwarning;         // node-input-outwarning - Warning state payload
         node.outunsafe = n.outunsafe || "off"; // node-input-outunsafe  - Timer off payload
         //                                     // node-input-warning    - warning seconds
@@ -190,8 +190,10 @@ module.exports = function(RED) {
             msg.payload = node.outsafe;
             msg.topic = node.topic;
             lastPayload = msg.payload;
-            ndebug("Send green: " + lastPayload);
-            node.send([msg, null]);
+            ndebug("Send green: " + lastPayload || "''"); // @FEATURE: no on msg
+            if(msg.payload) {                             // @FEATURE: no on msg
+                node.send([msg, null]);                   // @FEATURE: no on msg
+            }                                             // @FEATURE: no on msg
 
             state = 'run';
 
@@ -519,8 +521,8 @@ module.exports = function(RED) {
                 // Anything that is not an existing state/function is treated as
                 // an on request.
                 // =============================================================
-                ndebug(s  + " \" (this is not an error)");
-                ndebug("states catch: " + err + "(" + ticks + "/" + warn + " - this is not an error)");
+                ndebug(s  + "\" (this is not an error)");
+                ndebug("states catch: " + err + " (" + ticks + "/" + warn + " - this is not an error)");
                 // If it's not an existing state then treat it as an on
                 // that way anthing can be used as a kicker to keep the timer
                 // running
