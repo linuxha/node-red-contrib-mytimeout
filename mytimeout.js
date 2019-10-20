@@ -166,7 +166,11 @@ module.exports = function(RED) {
             //
             timeout = msg.timeout||timeout||node.timer;
             timeout = parseInt(timeout);                // ncherry@linuxha.com parseInt()
-            warn    = msg.warning||warn||node.warnT;
+            if(msg.warning != 0) {
+                warn = msg.warning||warn||node.warnT;
+            } else {
+                warn = 0;
+            }
             warn    = parseInt(warn);                   // ncherry@linuxha.com parseInt()
 
             ticks = timeout;
@@ -187,10 +191,13 @@ module.exports = function(RED) {
                 text  : "Running: " + ticks // provide a visual countdown
             });
 
-            msg.payload = node.outsafe;
-            msg.topic = node.topic;
+            // @Feature: no on msg
+            if(msg.payload) {
+                msg.payload = node.outsafe;
+            }
+            msg.topic   = node.topic;
             lastPayload = msg.payload;
-            ndebug("Send green: " + lastPayload || "''"); // @FEATURE: no on msg
+            ndebug("Send Green: " + lastPayload || "''"); // @FEATURE: no on msg
             if(msg.payload) {                             // @FEATURE: no on msg
                 node.send([msg, null]);                   // @FEATURE: no on msg
             }                                             // @FEATURE: no on msg
@@ -236,7 +243,7 @@ module.exports = function(RED) {
                 case 'stop':
                     msg.payload = "stop";
                     lastPayload = msg.payload;
-                    ndebug("Send red: " + lastPayload);
+                    ndebug("Send Red: " + lastPayload);
 
                     var tremain = {"payload": -1, "state": 0, "flag": "stop"};
                     node.send([msg, tremain]);
@@ -289,47 +296,30 @@ module.exports = function(RED) {
 
         // @TODO: This should return the original msg with as few changes as possible
         function newMsg(msg) {
-            var nMsg = Object.assign(msg, {});
+            // Pretty much a deep clone but I don't think it
+            // will copy things like sockets
+            //nMsg.payload = JSON.parse(JSON.stringify(msg));
+            var nMsg = Object.assign(msg, {}); // create a copy perhaps use this: JSON.parse(JSON.stringify(msg));
 
-            // x console.log("msg  = " + JSON.stringify(msg));
-            // x console.log("nMsg = " + JSON.stringify(nMsg));
-
+            // Okay now I need to figure out the format
+            // is it?
+            // A: { "payload": "on", "timeout": 30, ... }
+            // or
+            // B: { "payload": { "payload": "on", "timeout": 30, ... } }
+            // or
+            // C: { "payload": "{ \"payload\": \"on\", \"timeout\": 30, \"extra\":\"inside\" }", "other":"other", "extra": "outside" }
             switch(typeof(msg.payload)) {
                 case "string":
                     ndebug("Str msg  = " + JSON.stringify(msg));
                     if(/.*"payload".*/.test(msg.payload)) {
-                        ndebug(" msg.payload  = " + JSON.stringify(msg));
+                        ndebug(" msg.payload  = " + JSON.stringify(msg.payload));
 
                         // string contain payload, convery to JSON
-                        //
-                        // in   = {"payload":"{ \"payload\":\"on\",\"timeout\":6,\"warning\":0}","qos":0}
-                        // msg  = {"payload":"{ \"payload\":\"on\",\"timeout\":6,\"warning\":0}","qos":0}
-                        // nMsg = {"payload":"{ \"payload\":\"on\",\"timeout\":6,\"warning\":0}","qos":0}
-                        // msg  = {"payload":"on","timeout":6,"warning":0}
-                        // nMsg = {"payload":"on","timeout":6,"warning":0}
-                        // str msg  = {"payload":"on","timeout":6,"warning":0}
-                        // str msg  = {"payload":"on","qos":0}
-                        // out  = {"payload":"on","qos":0}
-                        //
-                        // > obj1 = { "payload": 1, "qos": 0 };
-                        // > obj2 = { "payload": "on", "timeout": 60 };
-                        // > var result = Object.assign({},obj1, obj2);
-                        // { payload: 'on', qos: 0, timeout: 60 }
-                        //
-                        // x console.log("str msg = " + JSON.stringify(msg));
                         var t = newMsg(JSON.parse(msg.payload));
-                        //nMsg.payload = t.payload;
-                        nMsg = Object.assign({}, msg, t);
-                    } else {
-                        // x console.log("Not a /.*\"payload\".*/")
-                        //nMsgpayload = msg.payload;
+                        nMsg = Object.assign(msg, t); // Perhaps I should use nMsg instead msg (and copy msg to nMsg above)?
                     }
-                    // x console.log("str msg  = " + JSON.stringify(nMsg));
-                    // x console.log("typeof   = " + typeof(nMsg));
-                    // x console.log("str msg  = " + JSON.stringify(nMsg.payload));
-                    // x console.log("typeof   = " + typeof(nMsg.payload));
 
-                    // 
+                    //
                     try{
                         nMsg.payload = nMsg.payload.toLowerCase();
                     } catch(e) {
@@ -340,45 +330,27 @@ module.exports = function(RED) {
                 case "number":
                     ndebug("Num msg  = " + JSON.stringify(msg));
                     nMsg.payload = msg.payload.toString();
-                    // x console.log("num msg  = " + JSON.stringify(nMsg));
                     break;
 
                 case "object":
-                    ndebug("Obj msg  = " + JSON.stringify(msg));
-                    /*
-                       o1 = { "payload": "old", "_msgId": 1, "something": "else"};
-                       o2 = { "payload": "on", "timeout": 60, "warning": 10};
-                       Object.assign(o1, o2);
-                         { payload: 'on',
-                           _msgId: 1,
-                           something: 'else',
-                           timeout: 60,
-                           warning: 10 }
-
-                       msg = { payload: [ 50, 20 ] };
-                         { payload: [ 50, 20 ] }
-                       typeof(msg)
-                         'object'
-                       typeof(msg.payload)
-                         'object' <-- This is an issue
-                    */
-                    // x console.log("obj msg  = " + JSON.stringify(msg));
-                    //msg.payload = msg.payload.payload;
-                    msg = Object.assign(msg, msg.payload);
-                    t = newMsg(msg);
-                    nMsg.payload = t.payload;
-                    // x console.log("obj nmsg = " + JSON.stringify(nMsg));
+                    var m = msg.payload;
+                    ndebug("Obj msg  = " + JSON.stringify(m));
+                    t    = JSON.parse(JSON.stringify(m));
+                    ndebug("obj m    = " + JSON.stringify(m));
+                    nMsg = Object.assign(msg, t);
+                    ndebug("obj t    = " + JSON.stringify(t));
+                    ndebug("obj nmsg = " + JSON.stringify(nMsg));
                     break;
 
                 default:
                     ndebug("??? msg  = " + JSON.stringify(msg));
                     ndebug("??? msg  = " + typeof(msg.payload));
                     nMsg.payload = "";
-                    // x console.log("??? msg  = " + JSON.stringify(nMsg));
                     break;
             }
             ndebug("RTN msg  = " + JSON.stringify(nMsg));
-            return(nMsg);
+            
+            return nMsg;
         }
 
         // Leave this here, need the functions ref from above
@@ -408,10 +380,12 @@ module.exports = function(RED) {
                         });
 
                         if(!wflag) {
+                            msg = Object.assign(msg, line); // Copy the original attributes into the new msg
+
                             msg.payload = node.outwarn;
-                            msg.topic = node.topic;
+                            msg.topic   = node.topic;
                             lastPayload = msg.payload;
-                            ndebug("Send yellow: " + lastPayload);
+                            ndebug("Send Yellow: " + lastPayload);
                             node.send([msg, null]);
                             wflag = true;
                         }
@@ -431,7 +405,7 @@ module.exports = function(RED) {
                     node.send([null, tremain]);
                 }
                 ticks--;
-            } else if(ticks == 0){
+            } else if(ticks == 0) {
                 ndebug("ticks == 0");
                 stop("off");
 
@@ -500,12 +474,29 @@ module.exports = function(RED) {
             } catch (err) {
                 // Basically treat the unknown payload as an on (i.e. anything can
                 // tickle the timer as long as it's not off, 0, stop or cancel)
-                node.warn("L495: newMsg(inMsg): " + err + " <" + JSON.stringify(inMsg) + ">");
+                node.warn("L477: newMsg(inMsg): " + err + " <" + JSON.stringify(inMsg) + ">");
             }
             ndebug("line = " + JSON.stringify(line));
 
 // ================================================================================
             var s = "nada";
+            
+            try {
+                states[state][line.payload](line);
+            } catch(err) {
+                // =============================================================
+                // Anything that is not an existing state/function is treated as
+                // an on request.
+                // =============================================================
+                ndebug("state = <" + line.payload + ">" + " (this is not an error - treated as 'on')");
+                ndebug("states catch: " + err + " (" + ticks + "/" + warn + " - this is not an error)");
+                // If it's not an existing state then treat it as an on
+                // that way anthing can be used as a kicker to keep the timer
+                // running
+                on(line);
+            }
+
+            /* This is handled in newMsg(msg) above
             try {
                 if(typeof(line.payload) == 'string') {
                     s = ("1 states catch: line \"" + line.payload);
@@ -527,7 +518,7 @@ module.exports = function(RED) {
                 // that way anthing can be used as a kicker to keep the timer
                 // running
                 on(line);
-            }
+            } /* */
 // ================================================================================
         }); // node.on("input", ... )
 
