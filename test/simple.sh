@@ -97,15 +97,15 @@ done
 # checks occur after the timeout of the mosquitto_sub wild card
 # so a wait occurs with this function
 myTest() {
-    testNom="${Array[1]}"
-    desc="${Array[0]}"
-    wcTopic="${Array[2]}"
-    file="${Array[3]}"
-    cmdInTopic="${Array[4]}"
-    msg="${Array[5]}"
-    cmdCount="${Array[6]}"
-    tickCount="${Array[7]}"
-    cmdOutTopic="${Array[8]}"
+    local testNom="${Array[1]}"
+    local desc="${Array[0]}"
+    local wcTopic="${Array[2]}"
+    local file="${Array[3]}"
+    local cmdInTopic="${Array[4]}"
+    local msg="${Array[5]}"
+    local cmdCount="${Array[6]}"
+    local tickCount="${Array[7]}"
+    local cmdOutTopic="${Array[8]}"
 
     echo -e "\n\n"
 
@@ -152,15 +152,15 @@ myTest() {
 # Same as myTest but no wait for background mosquitto_sub process and
 # no checks (which occur after the subscription has timed out)
 myTestNoWait() {
-    testNom="${Array[1]}"
-    desc="${Array[0]}"
-    wcTopic="${Array[2]}"
-    file="${Array[3]}"
-    cmdInTopic="${Array[4]}"
-    msg="${Array[5]}"
-    cmdCount="${Array[6]}"
-    tickCount="${Array[7]}"
-    cmdOutTopic="${Array[8]}"
+    local testNom="${Array[1]}"
+    local desc="${Array[0]}"
+    local wcTopic="${Array[2]}"
+    local file="${Array[3]}"
+    local cmdInTopic="${Array[4]}"
+    local msg="${Array[5]}"
+    local cmdCount="${Array[6]}"
+    local tickCount="${Array[7]}"
+    local cmdOutTopic="${Array[8]}"
 
     echo -e "\n\n"
     #echo "msg:   ${msg}"
@@ -708,6 +708,46 @@ echo "${testNom}: Command: <${Array[5]}>"
 wait %1
 pub "${cmdInTopic}" "cancel"
 
+# -[ Test17 ]-------------------------------------------------------------------
+testNom="Test17"
+desc="Test ON (ignore case test)"
+n=$[$n+1]
+file="${testNom}/${results}"
+msg='{"payload": "ON", "timeout": 3, "extraAttr": "Extra attributes", "TestNo":"'${testNom}'" }'
+Array=( 
+    [0]="${desc}"
+    [1]="${testNom}"
+    [2]="${wcTopic}"
+    [3]="${file}"
+    [4]="${cmdInTopic}"
+    [5]="${msg}"
+    [6]=3
+    [7]=4
+    [8]="${cmdOutTopic}"
+)
+
+myTest "${Array[*]}"
+
+# -[ Test18 ]-------------------------------------------------------------------
+testNom="Test18"
+desc="Test Warning wih floats"
+n=$[$n+1]
+file="${testNom}/${results}"
+msg='{"payload": "on", "timeout": 8, "warning": 5.5, "extraAttr": "Extra attributes", "TestNo":"'${testNom}'" }'
+Array=( 
+    [0]="${desc}"
+    [1]="${testNom}"
+    [2]="${wcTopic}"
+    [3]="${file}"
+    [4]="${cmdInTopic}"
+    [5]="${msg}"
+    [6]=3
+    [7]=9
+    [8]="${cmdOutTopic}"
+)
+
+myTest "${Array[*]}"
+
 echo "${testNom}: --------------------------------------------------------------------------------"
 # Tests
 echo "${testNom}: ${desc}"
@@ -724,7 +764,7 @@ fi
 # Emergence stop if this doesn't work
 pub "home/test/sameTopic" "cancel"
 
-echo --------------------------------------------------------------------------------
+echo -[ End of Tests ]----------------------------------------------------------
 
 echo -e "\nAll test have completed"
 # -[ Final tally ]--------------------------------------------------------------
