@@ -291,10 +291,10 @@ myTest "${Array[*]}"
 # Need further tests here
 
 result=$(grep "${cmdOutTopic}" ${file} | grep '"extraAttr":"Extra attributes"'| wc -l)
-echo "${testNom}: Extra attributes: $result / ${cmdCount}"
-if [ $result -ne ${cmdCount} ]; then
-    echo "${testNom}: Extra attributes check failed (${result} != ${cmdCount})"
-    err_push "${testNom}c" "${desc}: Command extra attributes failed (${result} != ${cmdCount})"
+echo "${testNom}: Extra attributes: $result / ${Array[6]}"
+if [ $result -ne ${Array[6]} ]; then
+    echo "${testNom}: Extra attributes check failed (${result} != ${Array[6]})"
+    err_push "${testNom}c" "${desc}: Command extra attributes failed (${result} != ${Array[6]})"
     #exit 1
 else
     echo "${testNom}: Command check passed"
@@ -388,10 +388,10 @@ wait %1
 echo "${testNom}: --------------------------------------------------------------------------------"
 # Tests
 result=$(grep "${cmdOutTopic}" ${file} | wc -l)
-echo "${testNom}: Cmds: $result / ${cmdCount}"
-if [ $result -ne ${cmdCount} ]; then
-    echo "${testNom}: Command check failed (${result} != ${cmdCount})"
-    err_push "${testNom}a" "${desc}: Command check failed (${result} != ${cmdCount})"
+echo "${testNom}: Cmds: $result / ${Array[6]}"
+if [ $result -ne ${Array[6]} ]; then
+    echo "${testNom}: Command check failed (${result} != ${Array[6]})"
+    err_push "${testNom}a" "${desc}: Command check failed (${result} != ${Array[6]})"
     #exit 1
 else
     echo "${testNom}: Command check passed"
@@ -440,10 +440,10 @@ pub "${cmdInTopic}" "stop"
 echo "${testNom}: --------------------------------------------------------------------------------"
 # Tests
 result=$(grep "${cmdOutTopic}" ${file} | wc -l)
-echo "${testNom}: Cmds: $result / ${cmdCount}"
-if [ $result -ne ${cmdCount} ]; then
-    echo "${testNom}: Command check failed (${result} != ${cmdCount})"
-    err_push "${testNom}a" "${desc}: Command check failed (${result} != ${cmdCount})"
+echo "${testNom}: Cmds: $result / ${Array[6]}"
+if [ $result -ne ${Array[6]} ]; then
+    echo "${testNom}: Command check failed (${result} != ${Array[6]})"
+    err_push "${testNom}a" "${desc}: Command check failed (${result} != ${Array[6]})"
     #exit 1
 else
     echo "${testNom}: Command check passed"
@@ -552,10 +552,10 @@ pub "${cmdInTopic}" "stop"
 echo "${testNom}: --------------------------------------------------------------------------------"
 # Tests
 result=$(grep "${cmdOutTopic}" ${file} | wc -l)
-echo "${testNom}: Cmds: $result / ${cmdCount}"
-if [ $result -ne ${cmdCount} ]; then
-    echo "${testNom}: Command check failed (${result} != ${cmdCount})"
-    err_push "${testNom}a" "${desc}: Command check failed (${result} != ${cmdCount})"
+echo "${testNom}: Cmds: $result / ${Array[6]}"
+if [ $result -ne ${Array[6]} ]; then
+    echo "${testNom}: Command check failed (${result} != ${Array[6]})"
+    err_push "${testNom}a" "${desc}: Command check failed (${result} != ${Array[6]})"
     #exit 1
 else
     echo "${testNom}: Command check passed"
@@ -604,10 +604,10 @@ pub "${cmdInTopic}" "stop"
 echo "${testNom}: --------------------------------------------------------------------------------"
 # Tests
 result=$(grep "${cmdOutTopic}" ${file} | wc -l)
-echo "${testNom}: Cmds: $result / ${cmdCount}"
-if [ $result -ne ${cmdCount} ]; then
-    echo "${testNom}: Command check failed (${result} != ${cmdCount})"
-    err_push "${testNom}a" "${desc}: Command check failed (${result} != ${cmdCount})"
+echo "${testNom}: Cmds: $result / ${Array[6]}"
+if [ $result -ne ${Array[6]} ]; then
+    echo "${testNom}: Command check failed (${result} != ${Array[6]})"
+    err_push "${testNom}a" "${desc}: Command check failed (${result} != ${Array[6]})"
     #exit 1
 else
     echo "${testNom}: Command check passed"
@@ -656,10 +656,10 @@ pub "${cmdInTopic}" "stop"
 echo "${testNom}: --------------------------------------------------------------------------------"
 # Tests
 result=$(grep "${cmdOutTopic}" ${file} | wc -l)
-echo "${testNom}: Cmds: $result / ${cmdCount}"
-if [ $result -ne ${cmdCount} ]; then
-    echo "${testNom}: Command check failed (${result} != ${cmdCount})"
-    err_push "${testNom}a" "${desc}: Command check failed (${result} != ${cmdCount})"
+echo "${testNom}: Cmds: $result / ${Array[6]}"
+if [ $result -ne ${Array[6]} ]; then
+    echo "${testNom}: Command check failed (${result} != ${Array[6]})"
+    err_push "${testNom}a" "${desc}: Command check failed (${result} != ${Array[6]})"
     #exit 1
 else
     echo "${testNom}: Command check passed"
