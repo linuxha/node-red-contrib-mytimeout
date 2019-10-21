@@ -79,7 +79,7 @@ module.exports = function(RED) {
         var ignoreCase  = '';
 
         var line        = {};
-        var version     = '3.1.0+fc1'; // deploy  incoming exception as on payload @FEATURE: no on msg
+        var version     = '3.2.0'; //
 
         RED.nodes.createNode(this, n);
 
@@ -106,7 +106,7 @@ module.exports = function(RED) {
         node.name      = n.name;               // node-input-name       - Name
         node.warnT     = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
         node.topic     = n.outtopic;           // node-input-outtopic   - Output topic
-        node.outsafe   = n.outsafe;            // node-input-outsafe    - Timer on payload // @FEATURE: no on msg
+        node.outsafe   = n.outsafe;            // node-input-outsafe    - Timer on payload
         node.outwarn   = n.outwarning;         // node-input-outwarning - Warning state payload
         node.outunsafe = n.outunsafe || "off"; // node-input-outunsafe  - Timer off payload
         //                                     // node-input-warning    - warning seconds
@@ -197,10 +197,10 @@ module.exports = function(RED) {
             }
             msg.topic   = node.topic;
             lastPayload = msg.payload;
-            ndebug("Send Green: " + lastPayload || "''"); // @FEATURE: no on msg
+            ndebug("Send Green: " + lastPayload || "''");
             if(msg.payload) {                             // @FEATURE: no on msg
-                node.send([msg, null]);                   // @FEATURE: no on msg
-            }                                             // @FEATURE: no on msg
+                node.send([msg, null]);
+            }
 
             state = 'run';
 
