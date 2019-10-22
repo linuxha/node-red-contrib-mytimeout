@@ -1,0 +1,103 @@
+## 0.1.0 (October 22, 2019)
+  - Minor cleanup of comments and updated major version to 3.2.0 for the No On Feature
+  - Updated major for the no on feature
+  - Merge pull request #25 from linuxha/feature/no_on_payload
+  - Corrected a missed editor save
+  - Update script to use local variables in the functions and added more tests.
+  - Added No On message feature, fixed attibutes, warning, and Float bugs.
+  - Added the test flow used by the simple.sh script.
+  - Added a bash script for manual pair-wise testing.
+  - Feature request: adjusted code to allow a blank safe msg to not be sent.
+  - Feature request: removed default "on" and "require" for safe message
+  - Bram Hoefnagel (brammh) fixed missing topic in out message
+  - Bumped minor +1
+  - Minor corrections to the README
+  - Merge pull request #20 from brammh/Bugfix-#16---topic-name-included-in-control-messages
+  - Update mytimeout.js
+  - Change to version 3.0.2
+  - As per Colin Law I've changed the wording to refer to Javascript object.
+  - Added parseInt to the timeout and warning values.
+  - Updated version for node.warn fix
+  - Fixed node.warn error message
+  - Updated to fix output2 to contian the correct msg.payload for time remaining.
+  - Updated version to 2.2.3 for force integer input
+  - Update documentation to indicate that time must be in integer seconds
+  - Updated to handle incoming exceptions as on payloads
+  - Incremented version for deploy fix
+  - Incremented the minor version for deploy fix
+  - Removed the required on the Countdown, this caused the deploy errors
+  - Merge pull request #8 from linuxha/new-features-mytimeout
+  - Added new feature to ignore case on input match.
+  - Updated package.json to 2.1.9 for bug fix
+  - Merge pull request #7 from linuxha/bug-fix-mytimeout
+  - Modified newMsg to handle msg.payload { payload, timeout, warning } properly
+  - Pushed minor version increment to unstick npm publish
+  - Updated with debug option, v2.1.7
+  - 2.1.5
+  - Added a debug flag to the node
+  - Updated the documentation and added a note on a work around
+  - Added note to a work around for a problem with multiple timers
+  - Don't trust the test.js, it passes when it shouldn't
+  - Enhanced and massaged the wording in the README
+  - Added support for turning on/off debug logging in the node
+  - Update version to 2.1.4 and change test to use mocha
+  - Updated, as per node-red-node-test-helper Readme
+  - Documentation clean up and reorganizing
+  - Incremented minor version
+  - Added a link to the sample flow
+  - More documentation added
+  - More documentation added
+  - Major update of the message, timeout and warning handling.
+  - Updated the minor version
+  - Updated the version change (minor)
+  - Updated some more documentation
+  - updated some more documentation
+  - Updated to version 2.0.0
+  - Updated documentation to reflect change to 2.0.0 and some of the differences
+  - Major changes, added feature and changed the JSON input timer to timeout.
+  - Update comments, documentation and added 1 more output for seconds remaining
+  - Added comment about needing to work on the state engine
+  - Incremented minor version number
+  - incremented version so I can publish changes
+  - Reformatted the html and added a limit vaule
+  - Reformatted the html and added a limit vaule
+  - Updated keywords to include more keywords like node-red
+  - 1.0.13
+  - Moved under cherry instead of scargill
+  - 1.0.12
+  - Removed the log statement, node and log are not defined in that scope
+  - 1.0.11
+  - Fixed log, node wasn't define, use this instead
+  - 1.0.10
+  - Fixed log. again, I hope
+  - 1.0.9
+  - Fixed log, node wasn't define, use this instead
+  - 1.0.8
+  - Added node-red object, like bigtimer
+  - 1.0.7
+  - Logging messages, I hope
+  - 1.0.6
+  - Added "private": true, to the repos json
+  - 1.0.5
+  - Added a real test
+  - simple test file to check it doesn't blow up
+  - 1.0.4
+  - Restored catch(e)
+  - 1.0.3
+  - Corrected the name
+  - 1.0.2
+  - Some minor changes
+  - JSLint clean up, minor changes
+  - Got the timer on, off, stop and cancel working
+  -  Created new package.js, node-red didn't like the old one.
+  - Updated code to make cancel send out no output message
+  - Clarified the JSON messages and expected output
+  - Removed unneeded icons
+  - Began renaming and rewording to support the mytimeout package
+  - Avoided infinite loop on same pub/sub topic
+  - Added more information about new features to override defaults
+  - slight mods to keep from updating from Pete's repos, still needs work
+  - Updated the README.md with the additions I made.
+  - Create LICENSE
+  - first commit
+
