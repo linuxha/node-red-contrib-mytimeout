@@ -88,6 +88,61 @@ These will stop the timer. See above for the output description.
 If the node property 'Warning state payload' is not set in the edit node dialog or the property 'Warning (sec)' is set to 0, then no warning message will be sent.
 
 If the timer is not currently running and a **stop** or **cancel** is sent to the timer, no output will be sent. An **on** will trigger the timer to begin running. If an **off** is sent while the timer is not running, an off message will be sent.
+## Special handling
+
+### MQTT
+
+```
+mosquitto_pub -t home/automation/timer1 -m '{"payload": "on", "timeout": 600, "warning": 120 }"
+```
+
+```
+{
+    "topic":"home/automation/timer1",
+    "payload":"{\"payload\": "\on\", \"timeout\": 600, \"warning\": 120}",
+    "qos":0,
+    "retain":false,
+    "_msgid":"92d84595.fee6f8"
+}
+```
+
+```
+{
+    "topic":"home/automation/timer1",
+    "payload":"on",
+    "timeout":600,
+    "warning":120,
+    "qos":0,
+    "retain":false,
+    "_msgid":"92d84595.fee6f8"
+}
+```
+### Warning disabled
+
+```
+{
+    "topic":"home/automation/timer1",
+    "payload":"on",
+    "timeout":600,
+    "warning":0,
+    "qos":0,
+    "retain":false,
+    "_msgid":"92d84595.fee6f8"
+}
+```
+
+### Safe message disabled
+
+```
+{
+    "topic":"home/automation/timer1",
+    "payload":"",
+    "warning":0,
+    "qos":0,
+    "retain":false,
+    "_msgid":"92d84595.fee6f8"
+}
+```
 
 ## The first output
 The first (primary) output sends msg.payload of on, off, warning or stop. An input of cancel, does not send any output.
