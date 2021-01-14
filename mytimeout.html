@@ -54,7 +54,7 @@
 
 <!--
   <div class="form-row">
-    <label for="node-input-debug"><i class="fa fa-clock-o"></i> Debug loggin</label>
+    <label for="node-input-debug"><i class="fa fa-clock-o"></i>Debug logging</label>
     <input style="width:15%" type="text" id="node-input-debug" placeholder="0">
   </div>
   
@@ -159,11 +159,11 @@ or
         defaults: {
                 name:       { value: "" },
                 outtopic:   { value: "" },
-                outsafe:    { value: "" },
-                outwarning: { value: "Warning" },
-                outunsafe:  { value: "off", required: true },
-                warning:    { value: "5" },
-                timer:      { value: "30" },
+                outsafe:    { value: "on" },                  /* Default new 20200114 */
+                outwarning: { value: "Warning" },             /* */
+                outunsafe:  { value: "off", required: true }, /* Default */
+                warning:    { value: "5" },                   /* */
+                timer:      { value: "30" },                  /* */
 
                 debug:      { value: false },
                 ndebug:     { value: false },
