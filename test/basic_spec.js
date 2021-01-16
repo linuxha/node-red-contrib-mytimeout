@@ -18,17 +18,6 @@ mosquitto_sub -v -t home/test/switchTimer | awk '{ print strftime("%F_%T.%s"), "
 */
 "use strict";
 
-function delay(sec) {
-  var millis = sec * 1000;
-
-  var date = new Date();
-  var curDate = null;
-
-  do {
-    curDate = new Date();
-  } while(curDate-date < millis);
-}
-
 const should = require("should");
 var   helper = require('node-red-node-test-helper');
 var   myNode = require('../mytimeout.js');
@@ -36,7 +25,6 @@ var   myNode = require('../mytimeout.js');
 helper.init(require.resolve('node-red'));
 
 var nom =  'MyTimeout';
-//var flow = [{ id: 'n1', type: 'mytimeout', name: nom }];
 
 describe('mytimeout Node', function () {
 
@@ -52,17 +40,97 @@ describe('mytimeout Node', function () {
   });
 
   it('should be loaded', function (done) {
+    // select in node-red editor the node to test, then hamburger, then export, then copy to clipboard, then paste here:
+    /* */
+    var flow1 = [{
+      "id":         'n1', // was"abf332d4.4e",
+      "type":       "mytimeout",
+      "z":          "b431bcd1.51942",
+      "name":       nom,
+      "outtopic":   "",
+      "outsafe":    'on',
+      "outwarning": "Warning",
+      "outunsafe":  "off",
+      "warning":    "5",        // ??? shouldn't this be warning
+      "timer":      "30",
+      "debug":      false,
+      "ndebug":     false,
+      "ignoreCase": false,
+      "repeat":     false,
+      "again":      false,
+      "x":          600,
+      "y":          840,
+      "wires":[
+        ["ba562635.2144c8","6b9eec06.608274"],
+        ["2b13443d.b2b27c","e1f06422.544ee8"]
+      ]
+    }];
+    /* */
+    /*
+    Node 1: {
+      "id": "n1",
+      "type": "mytimeout",
+      "z": "b431bcd1.51942",
+      "_closeCallbacks": [
+        null
+      ],
+      "_inputCallbacks": null,
+      "name": "MyTimeout",
+      "wires": [
+        [
+          "ba562635.2144c8",
+          "6b9eec06.608274"
+        ],
+        [
+          "2b13443d.b2b27c",
+          "e1f06422.544ee8"
+        ]
+      ],
+      "_wireCount": 4,
+      "timer": 30,
+      "state": "stop",
+      "warning": 5,
+      "topic": "",
+      "outsafe": "on",
+      "outwarn": "Warning",
+      "outunsafe": "off",
+      "repeat": false,
+      "again": false,
+      "_events": null,
+      "_eventsCount": 1
+    }
+    */
     var flow = [{ id: "n1", type: "mytimeout", name: nom }];
+    // Node 1: {
+    //   "id":"n1",
+    //   "type":"mytimeout",
+    //   "_closeCallbacks":[null],
+    //   "_inputCallbacks":null,
+    //   "name":"MyTimeout",
+    //   "wires":[],
+    //   "_wireCount":0,
+    //   "timer":30,
+    //   "state":"stop",
+    //   "warning":5,
+    //   "outunsafe":"off",
+    //   "_events":{},
+    //   "_eventsCount":1
+    // }
     helper.load(myNode, flow, function () {
       var n1 = helper.getNode("n1");
-      n1.should.have.property('name',    nom);
-      //n1.should.have.property('timer',   30);
-      //n1.should.have.property('warning', 10);
+      //console.log ("Node 1:" + JSON.stringify(n1));
+      n1.should.have.properties({
+        'name':    nom,
+        "outunsafe": 'off',
+        'timer':   30,   // Defaults
+        'warning':   5     // Defaults
+      });
+      //n1.should.not.have.property('outsafe'); // This eventually needs to get there
       done();
     });
   });
 
-  it('Should turn off', function (done) {
+  it('Should turn off Tx 0', function (done) {
     var flow = [
       { id: "n1", type: "mytimeout", name: nom, wires:[["n2"]] },
       { id: "n2", type: "helper" }
@@ -78,27 +146,9 @@ describe('mytimeout Node', function () {
     });
   });
   /* * /
-
-  it('Should be mytimeout ???', function (done) { // Fails
-    var flow = [
-      { id: "n1", type: "mytimeout", name: nom, wires:[["n2"]] },
-      { id: "n2", type: "helper" }
-    ];
-    helper.load(myNode, flow, function () {
-      helper.load(myNode, flow, function () {
-        var n2 = helper.getNode("n2");
-        var n1 = helper.getNode("n1");
-        n2.on("input", function (msg) {
-          msg.should.have.property('payload', 'off');
-          done();
-        });
-        n1.receive({ payload: '0' });
-      });
-    });
-  });
   /* */
 
-  it('Should turn off 2', function (done) { // Passes
+  it('Should turn off 2 Tx 0', function (done) { // Passes
     var flow = [
       { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
@@ -133,7 +183,7 @@ describe('mytimeout Node', function () {
   });
   /* */
 
-  it('Should turn on with junk, simple', function (done) { // Fails
+  it('Should turn on with junk, simple Tx junk', function (done) { // Fails
     var flow = [
       { id: "n1", type: "mytimeout", name: nom,
         outsafe:    "on",
@@ -151,6 +201,7 @@ describe('mytimeout Node', function () {
 
       n2.on("input", function (msg) {
         msg.should.have.property("payload", "on");
+        //console.log('Msg: ' + JSON.stringify(msg));
         done();
       });
       n1.receive({ payload: "junk" });
@@ -164,7 +215,7 @@ describe('mytimeout Node', function () {
   ** Ticks output
   ** n3: {"payload":30,"state":1,"flag":"ticks > 0","_msgid":"5e5dd4bf.1be32c"}
   */
-  it('Should turn on', function (done) {
+  it('Should turn on Tx on', function (done) {
     var flow = [
       { id: "n1", type: "mytimeout", name: nom,
         outsafe: "on",
@@ -189,16 +240,22 @@ describe('mytimeout Node', function () {
   });
   /* */
   
-  it('Should turn on 2', function (done) { // ???
+  it('Should turn on 2 Tx 1', function (done) { // ???
+    var cmnds = [];
+    var ticks = [];
+
+    var t = 0;
+    var c = 0;
+
     var flow = [
       { id: "n1", type: "mytimeout", name: nom,
-        outsafe: "on",
+        outsafe:    "on",
         outwarning: "warning",
-        outunsafe: "off",
-        warning: "5",
-        timer: "30",
-        debug: "0",
-        output: 2,
+        outunsafe:  "off",
+        warning:    "5",
+        timer:      "10",
+        debug:      "0",
+        output:     2,
         wires:[["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" }
@@ -220,7 +277,7 @@ describe('mytimeout Node', function () {
       });
 
       n3.on("input", function (msg) {
-        msg.should.have.property('payload', 30);
+        msg.should.have.property('payload', 10);
         fini++;
         if(fini > 1) {
           done();
@@ -230,107 +287,79 @@ describe('mytimeout Node', function () {
       n1.receive({ payload: '1' });
     });
   });
-  /* * /
+  /* */
 
-  console.log("Sleeping 31 seconds");
-  delay(31);
+  it('Should turn on 2, complex Tx 1', function (done) { // ???
+    var cmnds = [];
+    var ticks = [];
 
-  it('Should turn on, complex', function (done) {
+    var t = 0;
+    var c = 0;
+
+    this.timeout(32000); // run timer for 30 plus 2 seconds overrun
+
+    // Node 1:{"id":"n1","type":"mytimeout","_closeCallbacks":[null],"_inputCallbacks":null,"name":"MyTimeout","wires":[["n2"],["n3"]],"_wireCount":2,"timer":5,"state":"stop","warning":2,"outsafe":"on","outwarn":"warning","outunsafe":"off","_events":{},"_eventsCount":1}
+    const On  = 'oN';
+    const Off = 'oFF';
+
     var flow = [
-      { id: "n1", type: "mytimeout", name: nom, wires:[["n2", "n3"]] },
-      { id: "n2", type: "helper" },
-      { id: "n3", type: "helper" }
+      { id: "n1", type: "mytimeout", name: nom,
+        outsafe: On, /* If blank we should get no on msg */
+        outwarning: "warning",
+        outunsafe: Off,
+        timer: 5,
+        warning: 2,
+        debug: "0",
+        /* output: 2, */
+        wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" }, /* Output commands */
+      { id: "n3", type: "helper" }  /* Output state of ticks */
     ];
+
     helper.load(myNode, flow, function () {
-      var n3 = helper.getNode("n3");
+      var fini = 0;
+
       var n2 = helper.getNode("n2");
+      var n3 = helper.getNode("n3");
       var n1 = helper.getNode("n1");
+
+      console.log ("Node 1:" + JSON.stringify(n1) +'\n');
       
+      /* * /
+      n1.should.have.properties({
+        'name':    nom,
+        "outunsafe": 'off',
+        'timer':   10,   // Defaults
+        'warning':   2     // Defaults
+      });
+      /* */
+
+      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
       n2.on("input", function (msg) {
-        console.log("NJC: msg.payload = " + msg.payload);
-        msg.should.have.property('payload', 'on');
-        done();
+        console.log("Msg #" + c + ": " + JSON.stringify(msg));
+        cmnds[c] = msg;
+        console.log("Cmnds[" + c + "]: " + JSON.stringify(cmnds[(c)]) );
+        c++;
+        // do until payload = 'off'
+        if(msg.payload == Off) {
+          console.log('\nCmnds: ' + JSON.stringify(cmnds));
+          msg.should.have.property('payload', Off);
+          //done();
+        }
       });
 
       n3.on("input", function (msg) {
-        console.log("Msg: " + msg.payload);
-        console.log("NJC: msg = " + JSON.stringify(msg));
-        //msg.should.have.property('payload', 'on');
-        done();
+        ticks[t++] = msg;
+        //console.log("Tick:  " + JSON.stringify(msg));
+        // do until payload = 0
+        if(msg.payload == 0) {
+          console.log('Ticks: ' + JSON.stringify(ticks));
+          msg.should.have.property('payload', 0); // Count down to 0
+          done();
+        }
       });
 
       n1.receive({ payload: '1' });
     });
   });
-  /* */
 });
-
-/*
-helper.load(myNode, flow, function () {
-  var n1 = helper.getNode('n1');
-  n1.should.have.property('name', nom);
-  done(); // coming back to this one later
-});
-
-/*
-const verEmail = 'test@fest.no';
-const verPassword = '12345';
-var credentials = { n1: { 'username': verEmail, 'password': verPassword } };
-
-helper.load(sureNode, flow, credentials, function () {
-  var n1 = helper.getNode('n1');
-  n1.should.have.property('displayName', 'Verisure Site');
-  n1.credentials.should.have.property('username', verEmail);
-  n1.credentials.should.have.property('password', verPassword);
-  done(); // coming back to this one later
-});
-*/
-
-// Name
-// Output Topic
-// Timer On Payload
-// Warning state payload
-// Timer Off payload
-// Countdown (sec)
-// Warning (sec)
-// Debug logging
-// Ignore Input case
-
-/*
-   "name": "Test Timeout",
-   "outtopic": "",
-   "outsafe": "on",
-   "outwarning": "warning",
-   "outunsafe": "off",
-   "warning": "5",
-   "timer": "30",
-   "debug": "0",
-   "ndebug": false,
-   "ignoreCase": false,
-   "repeat": false,
-   "again": false,
-*/
-
-/*
-const outTopic   = '';
-const outSafe    = 'on';
-const outWarning = 'warning';
-const outUnsafe  = 'off';
-
-var credentials = { n1: { 'outtopic': outTopic, 'outsafe': outSafe, 'outwarning': outWarning, '': outUnsafe } };
-
-helper.load(myNode, flow, credentials, function () {
-  var n1 = helper.getNode('n1');
-  n1.should.have.property('displayName', nom);
-  n1.credentials.should.have.property('outtopic',   outTopic);
-  n1.credentials.should.have.property('outsafe',    outSafe);
-  n1.credentials.should.have.property('outwarning', outWarning);
-  n1.credentials.should.have.property('outunsafe',  outUnsafe);
-  done(); // coming back to this one later
-});
-*/
-
-// Need to fix this!
-// Lo cal Variables: ***
-// js-indent-level: 2
-// En d: ***
