@@ -323,7 +323,7 @@ describe('mytimeout Node', function () {
       var n3 = helper.getNode("n3");
       var n1 = helper.getNode("n1");
 
-      console.log ("Node 1:" + JSON.stringify(n1) +'\n');
+      //console.log ("Node 1:" + JSON.stringify(n1) +'\n');
       
       /* * /
       n1.should.have.properties({
@@ -336,26 +336,41 @@ describe('mytimeout Node', function () {
 
       // Need to run the n2 & n3 until I get the last command (off) and the last tick.
       n2.on("input", function (msg) {
-        console.log("Msg #" + c + ": " + JSON.stringify(msg));
-        cmnds[c] = msg;
-        console.log("Cmnds[" + c + "]: " + JSON.stringify(cmnds[(c)]) );
-        c++;
+        cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
+
         // do until payload = 'off'
-        if(msg.payload == Off) {
-          console.log('\nCmnds: ' + JSON.stringify(cmnds));
-          msg.should.have.property('payload', Off);
-          //done();
+        try {
+          if(msg.payload == Off) {
+            //console.log('\nCmnds: ' + JSON.stringify(cmnds));
+            cmnds[0].should.have.property('payload', On);
+            cmnds[1].should.have.property('payload', 'warning');
+            cmnds[2].should.have.property('payload', Off);
+            //done();
+          }
+        } catch(err) {
+          done("Cmnds Err:"  + err);
         }
       });
 
       n3.on("input", function (msg) {
-        ticks[t++] = msg;
-        //console.log("Tick:  " + JSON.stringify(msg));
+        ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
+
         // do until payload = 0
         if(msg.payload == 0) {
-          console.log('Ticks: ' + JSON.stringify(ticks));
-          msg.should.have.property('payload', 0); // Count down to 0
-          done();
+          try {
+            //console.log('Ticks: ' + JSON.stringify(ticks) + '\nn1.timer: ' + n1.timer);
+            var j = 5;
+            for(let i = 0; i <= n1.timer ; i++) {
+              // These 3 actually don't work ???
+              //ticks[i].should.have.property('payload', j--); // Count down to 0
+              //ticks[i].should.have.value('payload', j--); // Count down to 0
+              ticks[i].payload.should.be.exactly(j--); // Count down to 0
+            }
+            done();
+          } catch(err) {
+            console.log("Ticks Err: " + err);
+            done(err);
+          }
         }
       });
 
