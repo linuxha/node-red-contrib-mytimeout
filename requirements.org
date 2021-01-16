@@ -1,0 +1,36 @@
+#+Title:	Requirements for mytimeout
+#+author:	Neil Cherry <ncherry@linuxha.com>
+#+date:		Jan. 13, 2021
+
+* Purpose
+
+Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending it input. It will run until the timer runs out where it will turn off. It can be turned off, stopped or cancelled with the correct input. It can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue to run. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input.
+
+Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the input matches the previously sent output, the message is ignored to avoid an endless loop.
+
+* Requirement
+1. node-red-contrib-mytimeout (mytimeout) is a countdown timer
+2. mytimeout can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue to run.
+3. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input. This restarts mytimeout
+4. mytimeout has 2 outputs, the command output and the ticks output
+5. the commands output contains the commands issued by the timer (on/off/warn)
+6. the ticks output contains the running state of the timer and addition information
+7. it is triggered by sending it an input, when turned on it will send an on-msg
+8. it will run until the timer times out when it sends an off-msg
+9. at a preset time a warn-msg will be sent (if set)
+10. the timer can be turned off, stopped or cancelled and the appropriate message will be sent
+11. Must be able to use the same topic to subscribe and publish on without resending the same message (positive feedback). If the input matches the previously sent commands output, the message is ignored to avoid an endless loop.
+12. 
+
+* Future requirements
+1. add support for pause
+2. add support for {{mustache}} in HTML config (see template core and testing code)
+3. 
+
+* -[ Fini ]------------------------------ ----------------------------------------
+** Emacs Org-mode stuff
+#+startup: overview+
+#+startup: inlineimages
+#+startup: indent
+#+creator: Neil Cherry <ncherry@linuxha.com>
+
