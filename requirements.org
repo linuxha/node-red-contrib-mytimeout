@@ -6,26 +6,116 @@
 
 Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending it input. It will run until the timer runs out where it will turn off. It can be turned off, stopped or cancelled with the correct input. It can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue to run. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input.
 
-Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the input matches the previously sent output, the message is ignored to avoid an endless loop.
+Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the input matches the previously sent output, the message is ignored to avoid an endless loop. But be careful, it the message sent is modified and is no matches the previous message sent, then the new message will be resent and loops will occur. This will cause node-red to become totally unresponsive.
 
 * Requirement
+
 1. node-red-contrib-mytimeout (mytimeout) is a countdown timer
 2. mytimeout can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue to run.
+   1. what about no payload, is that possible?
+   2. Define 'junk'
+   3. what are the exceptions?
 3. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input. This restarts mytimeout
 4. mytimeout has 2 outputs, the command output and the ticks output
-5. the commands output contains the commands issued by the timer (on/off/warn)
+5. the commands output contains the commands issued by the timer (on/off/warn/stop/cancel(?) cancel maybe silent on cmds output)
 6. the ticks output contains the running state of the timer and addition information
-7. it is triggered by sending it an input, when turned on it will send an on-msg
-8. it will run until the timer times out when it sends an off-msg
+7. mytimeout is triggered by sending it an input, when turned on it will send an on-msg
+   1. except when the payload is '' (blank), then the on-msg won't be sent but the timer will start. *Need a Note here*
+8. mytimeout will run until the timer times out when it sends an off-msg (unless a stop or cancel message has been sent)
 9. at a preset time a warn-msg will be sent (if set)
 10. the timer can be turned off, stopped or cancelled and the appropriate message will be sent
 11. Must be able to use the same topic to subscribe and publish on without resending the same message (positive feedback). If the input matches the previously sent commands output, the message is ignored to avoid an endless loop.
-12. 
+12. An empty Warning state payload entry (reword this) or warning seconds will cause mytimeout to skip sending the warning message
+13. An empty Timer On payload will cause mytimeout to start/restart the time but not send the on command, mytimeout can still send the warning (if so set) and off commands. Ticks output will still occur.
+14. Convert float values to int (round up, round down ???)
+
+* Test cases
+
+These are not unit tests, I haven't figured out who to write a unit test for this node-red node. These are node functionality/itegration test
+
+** [] - TC  0 - Load test
+
+- Tests that the module loads and that some attributes are set
+
+** [] - TC  1 - Base test, send on
+
+** [] - TC  2 - Test with empty payload '' and no warning msg
+
+** [] - TC  3 - Test with timeout override (integer)
+
+** [] - TC  4 - Test with short timeout override and extra attribute
+
+** [] - TC  5 - Test off
+
+** [] - TC  6 - Test stop
+
+** [] - TC  7 - Test on with no warning (warning value as an integer)
+
+** [] - TC  8 - Test on on (send an on, then send another on before the timer turns off)
+
+** [] - TC  9 - Test on/on with floats
+
+** [] - TC 10 - Test on with no warning (warning value as a string)
+
+** [] - TC 11 - Test with timeout override (string)
+
+** [] - TC 12 - Test with 'junk' payload, timeout 3, warning '0'
+
+** [] - TC 13 - Test on, on with payload = ''
+
+** [] - TC 14 - Test on/off
+
+** [] - TC 15 - Test on/stop
+
+** [] - TC 16 - Test on/cancel
+
+** [] - TC 17 - Test ON (ignore case test)
+
+** [] - TC 18 - Test Warning wih floats
+
+** [] - TC 19 - send on, same topic In/Out
+
+** [] - TC 20 - *Need* additional test cases here
 
 * Future requirements
 1. add support for pause
 2. add support for {{mustache}} in HTML config (see template core and testing code)
 3. 
+
+* Commands
+
+- '0'      -
+- '1'      -
+- 'on'     -
+- 'off'    -
+- 'stop'   -
+- 'cancel' -
+- 'pause'  -
+- junk     - really need to properly define this
+- blank    - need to define this
+
+* ticks format
+** states
+-  0 - timer not running (counted down, off, stop or cancel)
+-  1 - timer running
+-  2 - timer running, warning issued
+-  3 - timer paused
+
+** flags
+- ticks > 0     - timer counting down
+- warn >= ticks - timer counting down, warning issued
+- off           - timer not running
+- pause         - timer is pause
+- stop          - timer not running (just a different reason) no off(?), tick information issued
+- cancel        - timer not running, no off will be sent and ticks issued
+- unknown       - Shouldn't happen, not code but there for future use
+
+* Options
+- Debug logging
+- ignore payload case
+- repeat (not used)
+- again (not used)
+- inverted logic (not yet implemented)
 
 * -[ Fini ]------------------------------ ----------------------------------------
 ** Emacs Org-mode stuff
