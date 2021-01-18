@@ -33,49 +33,61 @@ Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the i
 
 These are not unit tests, I haven't figured out who to write a unit test for this node-red node. These are node functionality/itegration test
 
-** [] - TC  0 - Load test
+** mytimeout Node
+
+*** [ ] - TC  0 - Load test
 
 - Tests that the module loads and that some attributes are set
 
-** [] - TC  1 - Base test, send on
+*** [ ] - TC  1 - Base test, send on
 
-** [] - TC  2 - Test with empty payload '' and no warning msg
+*** [ ] - TC  2 - Test with empty payload '' and no warning msg
 
-** [] - TC  3 - Test with timeout override (integer)
+*** [ ] - TC  3 - Test with timeout override (integer)
 
-** [] - TC  4 - Test with short timeout override and extra attribute
+*** [ ] - TC  4 - Test with short timeout override and extra attribute
 
-** [] - TC  5 - Test off
+*** [ ] - TC  5 - Test off
 
-** [] - TC  6 - Test stop
+*** [ ] - TC  5a- Test off with 0
 
-** [] - TC  7 - Test on with no warning (warning value as an integer)
+*** [ ] - TC  6 - Test stop
 
-** [] - TC  8 - Test on on (send an on, then send another on before the timer turns off)
+*** [ ] - TC  7 - Test on with no warning (warning value as an integer)
 
-** [] - TC  9 - Test on/on with floats
+*** [ ] - TC  8 - Test on on (send an on, then send another on before the timer turns off)
 
-** [] - TC 10 - Test on with no warning (warning value as a string)
+*** [ ] - TC  9 - Test on/on with floats
 
-** [] - TC 11 - Test with timeout override (string)
+*** [ ] - TC 10 - Test on with no warning (warning value as a string)
 
-** [] - TC 12 - Test with 'junk' payload, timeout 3, warning '0'
+*** [ ] - TC 11 - Test with timeout override (string)
 
-** [] - TC 13 - Test on, on with payload = ''
+*** [ ] - TC 12 - Test with 'junk' payload, timeout 3, warning '0'
 
-** [] - TC 14 - Test on/off
+*** [ ] - TC 13 - Test on, on with payload = ''
 
-** [] - TC 15 - Test on/stop
+*** [ ] - TC 14 - Test on/off
 
-** [] - TC 16 - Test on/cancel
+*** [ ] - TC 15 - Test on/stop
 
-** [] - TC 17 - Test ON (ignore case test)
+*** [ ] - TC 16 - Test on/cancel
 
-** [] - TC 18 - Test Warning wih floats
+*** [ ] - TC 17 - Test ON (ignore case test)
 
-** [] - TC 19 - send on, same topic In/Out
+*** [ ] - TC 18 - Test Warning wih floats
 
-** [] - TC 20 - *Need* additional test cases here
+*** [ ] - TC 19 - Should turn on/on, Tx on
+
+*** [ ] - TC 19 - Should turn on/on (2nd no payload), Tx on
+
+*** [ ] - TC 20 - *Need* additional test cases here
+
+** mytimeout Node/MQTT flow test
+
+*** [ ] - TC 19 - send on, same topic In/Out (full flow test w/mqtt)
+
+*** [ ] - TC 20 - *Need* additional test cases here
 
 * Future requirements
 1. add support for pause
