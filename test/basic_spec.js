@@ -164,9 +164,9 @@ describe('mytimeout Node', function () {
   //
   // ===========================================================================================
   //
-  it('TC05 - Should turn off Tx 0', function (done) {
+  it('TC05a- Should turn off Tx 0', function (done) {
     var flow = [
-      { id: "n1", type: "mytimeout", name: nom, wires:[["n2"]] },
+      { id: "n1", type: "mytimeout", name: nom, wires:[["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" }
     ];
@@ -176,13 +176,23 @@ describe('mytimeout Node', function () {
       var n1 = helper.getNode("n1");
 
       n2.on("input", function (msg) {
-        msg.should.have.property('payload', 'off');
-        done();
+        try {
+          msg.should.have.property('payload', 'off');
+          //done();
+        } catch(err) {
+          console.log("\tCmnds Err: " + err);
+          done(err);
+        }
       });
 
       n3.on("input", function (msg) {
-        msg.should.have.property('payload', 0);
-        done();
+        try {
+          msg.should.have.property('payload', 0);
+          done();
+        } catch(err) {
+          console.log("\Ticks Err: " + err);
+          done(err);
+        }
       });
 
       n1.receive({ 'payload': 0 });
@@ -193,7 +203,7 @@ describe('mytimeout Node', function () {
   //
   // ===========================================================================================
   //
-  it('TC05 - Should turn off Tx off', function (done) { // Passes
+  it('TC05b- Should turn off Tx off', function (done) { // Passes
     var flow = [
       { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
@@ -208,18 +218,28 @@ describe('mytimeout Node', function () {
 
       // Okay the fini++ seems like a good idea but if I get 2 n2 or 2 n3 I might gets a false done
       n2.on("input", function (msg) {
-        msg.should.have.property('payload', 'off');
-        fini++;
-        if(fini > 1) {
-          done();
+        try {
+          msg.should.have.property('payload', 'off');
+          fini++;
+          if(fini > 1) {
+            done();
+          }
+        } catch(err) {
+          console.log("\tCmnds Err: " + err);
+          done(err);
         }
       });
 
       n3.on("input", function (msg) {
-        msg.should.have.property('payload', 0);
-        fini++;
-        if(fini > 1) {
-          done();
+        try {
+          msg.should.have.property('payload', 0);
+          fini++;
+          if(fini > 1) {
+            done();
+          }
+        } catch(err) {
+          console.log("\tTicks Err: " + err);
+          done(err);
         }
       });
 
@@ -281,7 +301,7 @@ describe('mytimeout Node', function () {
             cmnds[1].should.have.property('payload', Off);
           }
         } catch(err) {
-          console.log ("Node 1:" + JSON.stringify(n1) +'\n');
+          //console.log ("Node 1:" + JSON.stringify(n1) +'\n');
           console.log('Cmnds: ' + JSON.stringify(cmnds));
           console.log('Ticks: ' + JSON.stringify(ticks) + '\nn1.timer: ' + n1.timer + '\n');
 
@@ -360,8 +380,8 @@ describe('mytimeout Node', function () {
     helper.load(myNode, flow, function () {
       var fini = 0;
 
-      var n2 = helper.getNode("n2");
       var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
       var n1 = helper.getNode("n1");
 
       // Need to run the n2 & n3 until I get the last command (off) and the last tick.
@@ -926,10 +946,12 @@ describe('mytimeout Node', function () {
         warning: "5",
         timer: "30",
         debug: "0",
-        wires:[["n2"]] },
-      { id: "n2", type: "helper" }
+        wires:[["n2"],["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
     ];
     helper.load(myNode, flow, function () {
+      var n2 = helper.getNode("n3");
       var n2 = helper.getNode("n2");
       var n1 = helper.getNode("n1");
 
@@ -1246,8 +1268,8 @@ Ticks Err: AssertionError: expected Array [
     helper.load(myNode, flow, function () {
       var fini = 0;
 
-      var n2 = helper.getNode("n2");
       var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
       var n1 = helper.getNode("n1");
 
       // Need to run the n2 & n3 until I get the last command (off) and the last tick.
@@ -1350,8 +1372,8 @@ Ticks Err: AssertionError: expected Array [
     helper.load(myNode, flow, function () {
       var fini = 0;
 
-      var n2 = helper.getNode("n2");
       var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
       var n1 = helper.getNode("n1");
 
       // Need to run the n2 & n3 until I get the last command (off) and the last tick.
