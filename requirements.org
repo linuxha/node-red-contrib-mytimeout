@@ -35,59 +35,265 @@ These are not unit tests, I haven't figured out who to write a unit test for thi
 
 ** mytimeout Node
 
+Because this testing doesn't use the html config we need to add the defaults we want to use in the node setup
+
+#+begin_src js
+var flow = [
+   { id: "n1", type: "mytimeout",
+     name:       nom,
+     outsafe:    'on', /* If blank we should get no on msg */
+     outwarning: "warning",
+     outunsafe:  'off',
+     timer:      5,
+     warning:    2,
+     wires:[["n2"], ["n3"]] },
+   { id: "n2", type: "helper" }, /* Output commands */
+   { id: "n3", type: "helper" }  /* Output state of ticks */
+];
+#+end_src
+
+Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks output from the node.
+
 *** [ ] - TC  0 - Load test
 
+**** Test
 - Tests that the module loads and that some attributes are set
+
+**** Expected results
 
 *** [ ] - TC  1 - Base test, send on
 
-*** [ ] - TC  2 - Test with empty payload '' and no warning msg
 
-*** [ ] - TC  3 - Test with timeout override (integer)
+**** Test
+- x
 
-*** [ ] - TC  4 - Test with short timeout override and extra attribute
+**** Expected results
+- x
 
-*** [ ] - TC  5 - Test off
+*** [ ] - TC  2 - Base test, send stop
 
-*** [ ] - TC  5a- Test off with 0
+**** Test
+- x
 
-*** [ ] - TC  6 - Test stop
+**** Expected results
+- x
 
-*** [ ] - TC  7 - Test on with no warning (warning value as an integer)
+*** [ ] - TC  3 - Base test, send cancel
 
-*** [ ] - TC  8 - Test on on (send an on, then send another on before the timer turns off)
+**** Test
+- x
 
-*** [ ] - TC  9 - Test on/on with floats
+**** Expected results
+- x
 
-*** [ ] - TC 10 - Test on with no warning (warning value as a string)
+*** [ ] - TC  4 - Test with empty payload '' and no warning msg
 
-*** [ ] - TC 11 - Test with timeout override (string)
 
-*** [ ] - TC 12 - Test with 'junk' payload, timeout 3, warning '0'
+**** Test
+- x
 
-*** [ ] - TC 13 - Test on, on with payload = ''
+**** Expected results
+- x
 
-*** [ ] - TC 14 - Test on/off
+*** [ ] - TC  5 - Test with timeout override (integer)
 
-*** [ ] - TC 15 - Test on/stop
 
-*** [ ] - TC 16 - Test on/cancel
+**** Test
+- x
 
-*** [ ] - TC 17 - Test ON (ignore case test)
+**** Expected results
+- x
 
-*** [ ] - TC 18 - Test Warning wih floats
+*** [ ] - TC  6 - Test with short timeout override and extra attribute
 
-*** [ ] - TC 19 - Should turn on/on, Tx on
 
-*** [ ] - TC 19 - Should turn on/on (2nd no payload), Tx on
+**** Test
+- x
 
-*** [ ] - TC 20 - *Need* additional test cases here
+**** Expected results
+- x
+
+*** [ ] - TC  7 - Test off
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC  8 - Test off with 0
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC  9 - Test stop
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 10 - Test on with no warning (warning value as an integer)
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 11 - Test on on (send an on, then send another on before the timer turns off)
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 12 - Test on/on with floats
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 13 - Test on with no warning (warning value as a string)
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 14 - Test with timeout override (string)
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 15 - Test with 'junk' payload, timeout 3, warning '0'
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 16 - Test on, on with payload = ''
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 17 - Test on/off
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 18 - Test on/stop
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 19 - Test on/cancel
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 20 - Test ON (ignore case test)
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 21 - Test Warning wih floats
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 22 - Should turn on/on, Tx on
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 23 - Should turn on/on (2nd no payload), Tx on
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC xx - *Need* additional test cases here
+
+
+**** Test
+- x
+
+**** Expected results
+- x
 
 ** mytimeout Node/MQTT flow test
 
-*** [ ] - TC 19 - send on, same topic In/Out (full flow test w/mqtt)
+*** [ ] - TC 01 - send on, same topic In/Out (full flow test w/mqtt)
 
-*** [ ] - TC 20 - *Need* additional test cases here
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC xx - *Need* additional test cases here
+
+
+**** Test
+- x
+
+**** Expected results
+- x
 
 * Future requirements
 1. add support for pause
