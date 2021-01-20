@@ -199,10 +199,10 @@ describe('Basic mytimeout Node', function () {
     var t = 0;
     var c = 0;
 
-    this.timeout(15*1000); // run timer for timeOut plus 2 seconds overrun
+    this.timeout(7*1000); // run timer for timeOut plus 2 seconds overrun
 
     var flow = [
-      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n1", type: "mytimeout", name: nom, timer:5, warning:2, outusafe:"on", outunsafe:"off", output: 2, wires:[["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" }
     ];
@@ -258,7 +258,7 @@ describe('Basic mytimeout Node', function () {
         } catch(err) {
           done(err);
         }
-      }, 12*1000);
+      }, 6*1000);
     });
   });
   /* */
@@ -274,10 +274,10 @@ describe('Basic mytimeout Node', function () {
     var t = 0;
     var c = 0;
 
-    this.timeout(15*1000); // run timer for timeOut plus 2 seconds overrun
+    this.timeout(7*1000); // run timer for timeOut plus 2 seconds overrun
 
     var flow = [
-      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n1", type: "mytimeout", name: nom, timer:5, warning:2, outusafe:"on", outunsafe:"off", output: 2, wires:[["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" }
     ];
@@ -333,7 +333,7 @@ describe('Basic mytimeout Node', function () {
         } catch(err) {
           done(err);
         }
-      }, 12*1000);
+      }, 6*1000);
     });
   });
   /* */
