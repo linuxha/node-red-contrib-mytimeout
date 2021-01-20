@@ -1,34 +1,5 @@
 // https://github.com/ksvan/node-red-contrib-verisure/wiki/Detailed-setup---automated-nodered-test
 /*
-
-tput clear; npm test ; ps ax | egrep node-red | egrep -v grep
-
-mosquitto_sub -v -t home/test/switchTimer | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
-bg
-
-mosquitto_sub -v -t home/test/mytimeout     | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
-bg
-mosquitto_sub -v -t home/test/mytimeoutJson | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
-bg
-mosquitto_sub -v -t home/test/ticksJson     | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
-bg
-
-mosquitto_pub -t 'home/test/mytimeout'   -m '{ "payload": "on", "timeout" : 10, "warning": 2 }' && sleep 3 && mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "stop"}' && sleep 10 && echo
-mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "on", "timeout" : 10, "warning": 2 }' && sleep 3 && mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "stop"}' && sleep 10 && echo
-mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "", "timeout" : 4, "warning": 2 }'
-
-mosquitto_pub -t 'home/test/mytimeout' -m '{ "payload": "", "timeout" : 4, "warning": 2 }'
-
-2021-01-13_02:26:07.1610522767 home/test/switchTimer { "payload": "junk", "timer" : 4, "warning": 2 }
-2021-01-13_02:26:07.1610522767 home/test/switchTimer on
-2021-01-13_02:26:35.1610522795 home/test/switchTimer warning
-2021-01-13_02:26:37.1610522797 home/test/switchTimer off
-
-You have new mail in /var/mail/njc
-(pts/27) njc@mozart:~/dev/git/mytimeout/t/dev-test$ fg
-mosquitto_sub -v -t home/test/switchTimer | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file}
-^C
-
 */
 "use strict";
 
@@ -52,7 +23,7 @@ let getFailingPromise = function() {
   });
 }
 
-describe('mytimeout Node', function () {
+describe('Basic mytimeout Node', function () {
 
   beforeEach(function (done) {
     helper.startServer(done);
@@ -164,21 +135,96 @@ describe('mytimeout Node', function () {
   //
   // ===========================================================================================
   //
-  it('TC05a- Should turn off Tx 0', function (done) {
+  it('TCxx - Dummy, should be true', function (done) {
     var flow = [
-      { id: "n1", type: "mytimeout", name: nom, wires:[["n2"], ["n3"]] },
+      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" }
     ];
-    helper.load(myNode, flow, function () {
+
+    try {
+      helper.load(myNode, flow, function () {
+        try {
+          (true).should.be.true();
+          done();
+        } catch(err) {
+          console.log('Ooops');
+          done(err);
+        }
+      });
+    } catch(err) {
+      console.log(err);
+      done();
+    }
+  });
+  /* */
+
+  //
+  // ===========================================================================================
+  //
+  it('TCxx - Dummy, should be false', function (done) {
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+        
+    try {
+      helper.load(myNode, flow, function () {
+        try {
+          (false).should.be.true();  // this will caise this test case to fail (and pass)
+          //(true).should.be.true(); // This will cause this test case to succeed (and not pass)
+          done("Nuts, should have failed!"); // If we get this, test case fails
+        } catch(err) {
+          //console.log('Not Ooops');          // If we get this, test case passes
+          done();
+        }
+      });
+      //console.log('Hmmm');
+    } catch(err) {
+      console.log(err);
+      done();
+    }
+  });
+  /* */
+
+  /* */
+  //
+  // ===========================================================================================
+  //
+  it('TC02 - stop, should be timed, TX stop', function (done) {
+    var cmnds = [];
+    var ticks = [];
+
+    var t = 0;
+    var c = 0;
+
+    this.timeout(15*1000); // run timer for timeOut plus 2 seconds overrun
+
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+
+    helper.load(myNode, flow, function() {
+      var timeOutID;
+
       var n3 = helper.getNode("n3");
       var n2 = helper.getNode("n2");
       var n1 = helper.getNode("n1");
 
+      // Okay the fini++ seems like a good idea but if I get 2 n2 or 2 n3 I might gets a false done
       n2.on("input", function (msg) {
+        cmnds[c++] = JSON.parse(JSON.stringify(msg));
+        //
+        // If we get anything here, it's an error
+        //
         try {
-          msg.should.have.property('payload', 'off');
-          //done();
+          clearTimer(timeOutID);
+          //msg.should.have.property('payload', 'off');
+          (false).should.be.true();
+          done('\tthis is a mistake');
         } catch(err) {
           console.log("\tCmnds Err: " + err);
           done(err);
@@ -186,16 +232,185 @@ describe('mytimeout Node', function () {
       });
 
       n3.on("input", function (msg) {
+        ticks[t++] = JSON.parse(JSON.stringify(msg));
+        //
+        // If we get anything here, it's an error
+        //
         try {
-          msg.should.have.property('payload', 0);
-          done();
+          //msg.should.have.property('payload', 0);
+          clearTimer(timeOutID);
+          (false).should.be.true();
+          done('\tthis is a mistake');
         } catch(err) {
-          console.log("\Ticks Err: " + err);
+          console.log("\tTicks Err: " + err);
           done(err);
         }
       });
 
-      n1.receive({ 'payload': 0 });
+      n1.receive({ payload: 'stop' });
+
+      timeOutID = setTimeout(function() {
+        //
+        // This is what we should get
+        //
+        try {
+          done();
+        } catch(err) {
+          done(err);
+        }
+      }, 12*1000);
+    });
+  });
+  /* */
+
+  /* */
+  //
+  // ===========================================================================================
+  //
+  it('TC03 - cancel, should be timed, TX cancel', function (done) {
+    var cmnds = [];
+    var ticks = [];
+
+    var t = 0;
+    var c = 0;
+
+    this.timeout(15*1000); // run timer for timeOut plus 2 seconds overrun
+
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+
+    helper.load(myNode, flow, function() {
+      var timeOutID;
+
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      // Okay the fini++ seems like a good idea but if I get 2 n2 or 2 n3 I might gets a false done
+      n2.on("input", function (msg) {
+        cmnds[c++] = JSON.parse(JSON.stringify(msg));
+        //
+        // If we get anything here, it's an error
+        //
+        try {
+          clearTimer(timeOutID);
+          //msg.should.have.property('payload', 'off');
+          (false).should.be.true();
+          done('\tthis is a mistake');
+        } catch(err) {
+          console.log("\tCmnds Err: " + err);
+          done(err);
+        }
+      });
+
+      n3.on("input", function (msg) {
+        ticks[t++] = JSON.parse(JSON.stringify(msg));
+        //
+        // If we get anything here, it's an error
+        //
+        try {
+          //msg.should.have.property('payload', 0);
+          clearTimer(timeOutID);
+          (false).should.be.true();
+          done('\tthis is a mistake');
+        } catch(err) {
+          console.log("\tTicks Err: " + err);
+          done(err);
+        }
+      });
+
+      n1.receive({ payload: 'cancel' });
+
+      timeOutID = setTimeout(function() {
+        //
+        // This is what we should get
+        //
+        try {
+          done();
+        } catch(err) {
+          done(err);
+        }
+      }, 12*1000);
+    });
+  });
+  /* */
+
+  /* * /
+  //
+  // ===========================================================================================
+  //
+  it('TCxx - Dummy, should be timed', function (done) {
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+
+    try {
+      helper.load(myNode, flow, function () {
+        try {
+          (true).should.be.true();
+          done();
+        } catch(err) {
+          console.log('Ooops');
+          done(err);
+        }
+      });
+    } catch(err) {
+      console.log(err);
+      done();
+    }
+  });
+  /* */
+
+  /* * /
+  //
+  // ===========================================================================================
+  //
+  // https://github.com/node-red/node-red/blob/15a600c763cfeafee72016e05113ebca5358a3be/test/nodes/core/function/10-switch_spec.js#L640
+  it('should treat non-existant msg property conditional as undefined', function(done) {
+    var flow = [{
+      "id":"switchNode1",
+      "type":"switch",
+      "z":"feee1df.c3263e",
+      "name":"",
+      "property":"payload",
+      "propertyType":"msg",
+      "rules":[{"t":"eq","v":"this.does.not.exist","vt":"msg"}],
+      "checkall":"true",
+      "outputs":1,
+      "x":190,
+      "y":440,
+      "wires":[["helperNode1"]]},
+     {id:"helperNode1", type:"helper", wires:[]}];
+
+    helper.load(switchNode, flow, function() {
+      var switchNode1 = helper.getNode("switchNode1");
+      var helperNode1 = helper.getNode("helperNode1");
+      var received = [];
+
+      helperNode1.on("input", function(msg) {
+        received.push(msg);
+      });
+
+      // First message should be dropped as payload is not undefined
+      switchNode1.receive({topic:"messageOne",payload:""});
+
+      // Second message should pass through as payload is undefined
+      switchNode1.receive({topic:"messageTwo",payload:undefined});
+
+      setTimeout(function() {
+        try {
+          received.should.have.lengthOf(1);
+          received[0].should.have.a.property("topic","messageTwo");
+          done();
+        } catch(err) {
+          done(err);
+        }
+      },500)
     });
   });
   /* */
@@ -203,7 +418,7 @@ describe('mytimeout Node', function () {
   //
   // ===========================================================================================
   //
-  it('TC05b- Should turn off Tx off', function (done) { // Passes
+  it('TC05 - Should turn off Tx off', function (done) { // Passes
     var flow = [
       { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
@@ -251,7 +466,48 @@ describe('mytimeout Node', function () {
   //
   // ===========================================================================================
   //
-  it('Should turn on then off, Tx on', function (done) { // ???
+  it('TC06 - Should turn off Tx 0', function (done) {
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom, wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+    helper.load(myNode, flow, function () {
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      n2.on("input", function (msg) {
+        try {
+          msg.should.have.property('payload', 'off');
+          //done();
+        } catch(err) {
+          console.log("\tCmnds Err: " + err);
+          done(err);
+        }
+      });
+
+      n3.on("input", function (msg) {
+        try {
+          msg.should.have.property('payload', 0);
+          done();
+        } catch(err) {
+          console.log("\Ticks Err: " + err);
+          done(err);
+        }
+      });
+
+      n1.receive({ 'payload': 0 });
+    });
+  });
+  /* */
+
+  // stop and cancel should do nothing to the mytimeout node, working on a way to test that.
+
+  //
+  // ===========================================================================================
+  //
+  it('TC15 - Should turn on then off, Tx on', function (done) { // ???
     var timeOut = 10;
     var turnOff = 7;
     var isDone  = false;
@@ -346,7 +602,7 @@ describe('mytimeout Node', function () {
   //
   // ===========================================================================================
   //
-  it('Should turn on then stop, Tx on', function (done) { // ???
+  it('TC16 - Should turn on then stop, Tx on', function (done) { // ???
     var timeOut = 10;
     var turnOff = 7;
     var isDone  = false;
@@ -1441,3 +1697,38 @@ Ticks Err: AssertionError: expected Array [
   /* */
 
 });
+
+// =[ Notes ]====================================================================================
+/*
+
+tput clear; npm test ; ps ax | egrep node-red | egrep -v grep
+
+mosquitto_sub -v -t home/test/switchTimer | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
+bg
+
+mosquitto_sub -v -t home/test/mytimeout     | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
+bg
+mosquitto_sub -v -t home/test/mytimeoutJson | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
+bg
+mosquitto_sub -v -t home/test/ticksJson     | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
+bg
+
+mosquitto_pub -t 'home/test/mytimeout'   -m '{ "payload": "on", "timeout" : 10, "warning": 2 }' && sleep 3 && mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "stop"}' && sleep 10 && echo
+mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "on", "timeout" : 10, "warning": 2 }' && sleep 3 && mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "stop"}' && sleep 10 && echo
+mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "", "timeout" : 4, "warning": 2 }'
+
+mosquitto_pub -t 'home/test/mytimeout' -m '{ "payload": "", "timeout" : 4, "warning": 2 }'
+
+2021-01-13_02:26:07.1610522767 home/test/switchTimer { "payload": "junk", "timer" : 4, "warning": 2 }
+2021-01-13_02:26:07.1610522767 home/test/switchTimer on
+2021-01-13_02:26:35.1610522795 home/test/switchTimer warning
+2021-01-13_02:26:37.1610522797 home/test/switchTimer off
+
+You have new mail in /var/mail/njc
+(pts/27) njc@mozart:~/dev/git/mytimeout/t/dev-test$ fg
+mosquitto_sub -v -t home/test/switchTimer | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file}
+^C
+
+*/
+
+// =[ Fini ]=====================================================================================
