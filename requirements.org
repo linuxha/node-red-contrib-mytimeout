@@ -31,7 +31,97 @@ Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the i
 
 * Test cases
 
-These are not unit tests, I haven't figured out who to write a unit test for this node-red node. These are node functionality/itegration test
+These are not unit tests, I haven't figured out who to write a unit test for this node-red node. These are node functionality / itegration test.
+
+** Samples:
+*** Basic
+
+This is a standard minimal JSON object sent to mytimeout.  We can drop the _msgid, timeout and warning but in the sample I sent I minimized the amount of time a default node needs to run so I wouldn't have 31 lines in the ticks array.
+
+**** node
+
+This is the default mytimeout node used for testing. Since we need to set it up a 5/2 should work well enough.
+
+#+begin_src js
+{ id: "n1", type: "mytimeout",
+  name:       nom,
+  outsafe:    'on', /* If blank we should get no on msg */
+  outwarning: "warning",
+  outunsafe:  'off',
+  timer:      5,
+  warning:    2,
+  wires:[["n2"], ["n3"]] },
+#+end_src
+
+**** sent
+
+#+begin_src js
+{"_msgid":"13828afd.df31c5","payload":"on","timeout":5,"warning":2}
+#+end_src
+
+**** cmnds
+
+#+begin_src js
+{"_msgid":"13828afd.df31c5","payload":"on","timeout":5,"warning":2,"topic":""}
+{"_msgid":"13828afd.df31c5","payload":"Warning","timeout":5,"warning":2,"topic":""}
+{"_msgid":"13828afd.df31c5","payload":"off","timeout":5,"warning":2,"topic":""}
+#+end_src
+
+**** ticks
+
+#+begin_src js
+{"payload":5,"state":1,"flag":"ticks > 0","_msgid":"8c50272c.e4dc78"}
+{"payload":4,"state":1,"flag":"ticks > 0","_msgid":"2890a4cb.4571ec"}
+{"payload":3,"state":1,"flag":"ticks > 0","_msgid":"6c60bd4c.d6a284"}
+{"payload":2,"state":2,"flag":"warn >= ticks","_msgid":"523bfa12.4de134"}
+{"payload":1,"state":2,"flag":"warn >= ticks","_msgid":"cefc13aa.cff88"}
+{"payload":0,"state":0,"flag":"off","_msgid":"13828afd.df31c5"}
+#+end_src
+
+*** MQTT payload object as string
+
+I often send HA commands from outside of node-red via MQTT topics. When doing this with mosquitto_pub I often need to send the JSON object in the payload. Mytimeout is programmed to read this string, search for the string payload anad convert the string to a JSON object.
+
+**** node
+
+This is the default mytimeout node used for testing. Since we need to set it up a 5/2 should work well enough.
+
+#+begin_src js
+{ id: "n1", type: "mytimeout",
+  name:       nom,
+  outsafe:    'on', /* If blank we should get no on msg */
+  outwarning: "warning",
+  outunsafe:  'off',
+  timer:      5,
+  warning:    2,
+  wires:[["n2"], ["n3"]] },
+#+end_src
+
+**** sent
+
+#+begin_src js
+{"topic":"home/test/mytimeout", "payload":"{\"payload\": \"on\", \"timeout\": 6, \"TestNo\":\"0001\" }", "qos":0, "retain":false, "_msgid":"49d6f819.7b4eb8"}
+#+end_src
+
+**** cmnds
+
+#+begin_src js
+{"topic":"","payload":"on","qos":0,"retain":false,"_msgid":"49d6f819.7b4eb8","timeout":6,"TestNo":"0001"}
+{"topic":"","payload":"Warning","qos":0,"retain":false,"_msgid":"49d6f819.7b4eb8","timeout":6,"TestNo":"0001"}
+{"topic":"","payload":"off","qos":0,"retain":false,"_msgid":"49d6f819.7b4eb8","timeout":6,"TestNo":"0001"}
+#+end_src
+
+**** ticks
+
+#+begin_src js
+{"payload":6,"state":1,"flag":"ticks > 0","_msgid":"7b8be61f.17fbe8"}
+{"payload":5,"state":2,"flag":"warn >= ticks","_msgid":"53e8025f.19fcfc"}
+{"payload":4,"state":2,"flag":"warn >= ticks","_msgid":"72ded430.23362c"}
+{"payload":3,"state":2,"flag":"warn >= ticks","_msgid":"11089b18.fb2435"}
+{"payload":2,"state":2,"flag":"warn >= ticks","_msgid":"3a5000c1.a0b71"}
+{"payload":1,"state":2,"flag":"warn >= ticks","_msgid":"5a02330c.d2220c"}
+{"payload":0,"state":0,"flag":"off","_msgid":"49d6f819.7b4eb8"}
+#+end_src
 
 ** mytimeout Node
 
@@ -63,12 +153,21 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 
 *** [ ] - TC  1 - Base test, send on
 
-
 **** Test
-- x
+
+- Run with default flow, test for on/warning/off, number of commands, number of ticks
 
 **** Expected results
-- x
+
+- 'on' in cmnds[0]
+- 'warning' in cmnds[1]
+- 'off' in cmnds[0]
+- cmnds length of 3
+
+- ticks[0] properties ...
+- ticks[2] properties ...
+- ticks[5] properties ...
+- ticks length of 6 (?)
 
 *** [ ] - TC  2 - Base test, send stop
 
@@ -187,7 +286,6 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 
 *** [ ] - TC 15 - Test with 'junk' payload, timeout 3, warning '0'
 
-
 **** Test
 - x
 
@@ -259,6 +357,40 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 
 *** [ ] - TC 23 - Should turn on/on (2nd no payload), Tx on
 
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 24 - Should turn on with junk, Tx junk (Test with 'junk' payload, timeout 3, warning '0')
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 25 - Should turn on with junk with no outwarning (''), Tx junk (Test with 'junk' payload, timeout 3, warning '0')
+
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 26 - Should turn on with junk with outwarning not defined & warning (0), Tx junk )Test with 'junk' payload, timeout 3, warning '0')
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC 27 - Should turn on with junk with outwarning &warning defined, Tx junk & warning 0 (Test with 'junk' payload, timeout 3, warning '0')
 
 **** Test
 - x
