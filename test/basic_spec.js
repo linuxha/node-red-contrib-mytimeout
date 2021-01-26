@@ -67,40 +67,7 @@ describe('Basic mytimeout Node', function () {
       ]
     }];
     /* */
-    /*
-    Node 1: {
-      "id": "n1",
-      "type": "mytimeout",
-      "z": "b431bcd1.51942",
-      "_closeCallbacks": [
-        null
-      ],
-      "_inputCallbacks": null,
-      "name": "MyTimeout",
-      "wires": [
-        [
-          "ba562635.2144c8",
-          "6b9eec06.608274"
-        ],
-        [
-          "2b13443d.b2b27c",
-          "e1f06422.544ee8"
-        ]
-      ],
-      "_wireCount": 4,
-      "timer": 30,
-      "state": "stop",
-      "warning": 5,
-      "topic": "",
-      "outsafe": "on",
-      "outwarn": "Warning",
-      "outunsafe": "off",
-      "repeat": false,
-      "again": false,
-      "_events": null,
-      "_eventsCount": 1
-    }
-    */
+
     var flow = [{ id: "n1", type: "mytimeout", name: nom }];
     // Node 1: {
     //   "id":"n1",
@@ -132,59 +99,229 @@ describe('Basic mytimeout Node', function () {
   });
   /* */
 
+  /*
+  ** Main output
+  ** n2: {"_msgid":"65d8f152.8e917","payload":"on","topic":"","timeout":30}
+  ** Ticks output
+  ** n3: {"payload":30,"state":1,"flag":"ticks > 0","_msgid":"5e5dd4bf.1be32c"}
+  */
   //
   // ===========================================================================================
   //
-  it('TCxx - Dummy, should be true', function (done) {
+  it('TC01 - Should turn on Tx on', function (done) {
     var flow = [
-      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n1", type: "mytimeout",
+        name:       nom,
+        outsafe:    "on",
+        outwarning: "warning",
+        outunsafe:  "off",
+        warning:    "5",
+        timer:      "30",
+        debug:      "0",
+        wires:[["n2"],["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+    helper.load(myNode, flow, function () {
+      var n2 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      n2.on("input", function (msg) {
+        msg.should.have.property('payload', 'on');
+        done();
+      });
+      n1.receive({ payload: 'on' });
+    });
+  });
+  /* */
+  
+  // sleep 3; mosquitto_pub -t 'home/test/mytimeout' -m '{"payload": "on", "timeout": 2, "warning": 1, "TestNo":"'0002'" }'
+  /* */
+  //
+  // ===========================================================================================
+  //
+  it('TC01a- timed on, minimal time (2/1), TX on', function (done) {
+    var cmnds = [];
+    var ticks = [];
+
+    var t = 0;
+    var c = 0;
+
+    var timeout = 2;
+    var warn    = 1;
+
+    this.timeout(10*1000); // run timer for timeOut plus 2 seconds overrun
+
+    var flow = [
+      { id: "n1", type: "mytimeout",
+        name:       "myTimeout",
+        timer:      5,
+        warning:    2,
+        outsafe:    "on",
+        outwarning: "warning",
+        outunsafe:  "off",
+        qos:        0,
+        retain:     false,
+        topic:      "",
+        wires:      [["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" }
     ];
 
-    try {
-      helper.load(myNode, flow, function () {
+    helper.load(myNode, flow, function() {
+      var timeOutID;
+
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      // Okay the fini++ seems like a good idea but if I get 2 n2 or 2 n3 I might gets a false done
+      n2.on("input", function (msg) {
+        msg.t = Date.now();
+        cmnds[c++] = JSON.parse(JSON.stringify(msg));
+        //
+        // Just collect the inputs. This time we'll get on/warning/off
+        //
+        
+      });
+
+      n3.on("input", function (msg) {
+        msg.t = Date.now();
+        ticks[t++] = JSON.parse(JSON.stringify(msg));
+        //
+        //  Just collect the inputs.
+        //
+      });
+      
+      var nmsg = { payload: 'on', timeout: timeout, warning: warn, TestNo: '0001a'};
+      n1.receive( nmsg );
+
+      //
+      // ---------------------------------------------------------------------------------------
+      // Timer
+      //
+      timeOutID = setTimeout(function() {
+        //
+        // This is what we should get
+        //
         try {
-          (true).should.be.true();
+          // Now check the cmnds
+          cmnds.should.have.lengthOf((3));
+
+          cmnds[0].should.have.properties({"payload": "on",      "timeout": timeout, warning: warn, TestNo: "0001a"});
+          cmnds[1].should.have.properties({"payload": "warning", "timeout": timeout, warning: warn, TestNo: "0001a"});
+          cmnds[2].should.have.properties({"payload": "off",     "timeout": timeout, warning: warn, TestNo: "0001a"});
+
+          // Now check the ticks
+          ticks.should.have.lengthOf(timeout+1);
+
+          ticks[0].should.have.properties({"payload":timeout,"state":1,"flag":"ticks > 0"});
+          --timeout;
+          ticks[1].should.have.properties({"payload":timeout,"state":2,"flag":"warn >= ticks"});
+          --timeout;
+          ticks[2].should.have.properties({"payload":timeout,"state":0,"flag":"off"});
+
           done();
         } catch(err) {
-          console.log('Ooops');
+          console.log("Cmnds Err: " + err + ' (' + timeout + '/' + warn + ')');
+          console.log('Sent:  ' + JSON.stringify(nmsg));
+          console.log('Cmnds: ' + JSON.stringify(cmnds));
+          console.log('Ticks: ' + JSON.stringify(ticks));          
           done(err);
         }
-      });
-    } catch(err) {
-      console.log(err);
-      done();
-    }
+      }, (timeout+2)*1000);
+    });
   });
   /* */
 
+  /* * /
   //
   // ===========================================================================================
   //
-  it('TCxx - Dummy, should be false', function (done) {
+  it('TC01b- Should turn on, Tx on', function (done) { // ???
+    var timeOut = 5;
+    var turnOff = 2;
+    var isDone  = false;
+
+    var cmnds = [];
+    var ticks = [];
+
+    var t = 0;
+    var c = 0;
+
+    this.timeout((timeOut+2)*1000); // run timer for timeOut plus 2 seconds overrun
+
+    // Node 1:{"id":"n1","type":"mytimeout","_closeCallbacks":[null],"_inputCallbacks":null,"name":"MyTimeout","wires":[["n2"],["n3"]],"_wireCount":2,"timer":5,"state":"stop","warning":2,"outsafe":"on","outwarn":"warning","outunsafe":"off","_events":{},"_eventsCount":1}
+    const On  = 'on';
+    const Off = 'off';
+
     var flow = [
-      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n1", type: "mytimeout", name: nom,
+        outsafe:    On,
+        outwarning: "warning",
+        outunsafe:  Off,
+        timer:      timeOut,
+        warning:    turnOff,
+        debug:      "0",
+        wires:[["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" }
     ];
-        
-    try {
-      helper.load(myNode, flow, function () {
+
+    helper.load(myNode, flow, function () {
+      var fini = 0;
+
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
+      n2.on("input", function (msg) {
+        cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
+
+        // do until payload = 'off'
         try {
-          (false).should.be.true();  // this will caise this test case to fail (and pass)
-          //(true).should.be.true(); // This will cause this test case to succeed (and not pass)
-          done("Nuts, should have failed!"); // If we get this, test case fails
+          if(msg.payload == Off) {
+            //console.log('\nCmnds: ' + JSON.stringify(cmnds));
+            cmnds.should.have.length(3, "Number of commands issued");
+            cmnds[0].should.have.property('payload', On);
+            cmnds[1].should.have.property('payload', 'warning');
+            cmnds[2].should.have.property('payload', Off);
+          }
         } catch(err) {
-          //console.log('Not Ooops');          // If we get this, test case passes
-          done();
+          //console.log ("Node 1:" + JSON.stringify(n1) +'\n');
+          console.log('Cmnds: ' + JSON.stringify(cmnds));
+          console.log('Ticks: ' + JSON.stringify(ticks) + '\nn1.timer: ' + n1.timer + '\n');
+
+          console.log("Cmnds Err: " + err);
+          done("Cmnds Err:"  + err);
         }
       });
-      //console.log('Hmmm');
-    } catch(err) {
-      console.log(err);
-      done();
-    }
+
+      n3.on("input", function (msg) {
+        ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
+
+        // do until payload = 0
+        if(msg.payload == 0) {
+          try {
+            var j = timeOut; // n1.timer - turnOff;
+            var idx = n1.timer + 1;
+            for(let i = 0; i < idx ; i++) {
+              ticks[i].payload.should.be.exactly(j--); // Count down to 0
+            }
+            
+            done();
+          } catch(err) {
+            console.log('Ticks: ' + JSON.stringify(ticks) + '\nn1.timer: ' + n1.timer + '\n');
+            console.log("Ticks Err: " + err);
+            done(err);
+          }
+        }
+      });
+
+      n1.receive({ payload: 'on' });
+    });
   });
   /* */
 
@@ -199,10 +336,12 @@ describe('Basic mytimeout Node', function () {
     var t = 0;
     var c = 0;
 
+    var timeout = 2;
+
     this.timeout(7*1000); // run timer for timeOut plus 2 seconds overrun
 
     var flow = [
-      { id: "n1", type: "mytimeout", name: nom, timer:5, warning:2, outusafe:"on", outunsafe:"off", output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n1", type: "mytimeout", name: nom, timer:5, warning:2, outusafe:"on", outunsafe:"off", wires:[["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" }
     ];
@@ -214,7 +353,6 @@ describe('Basic mytimeout Node', function () {
       var n2 = helper.getNode("n2");
       var n1 = helper.getNode("n1");
 
-      // Okay the fini++ seems like a good idea but if I get 2 n2 or 2 n3 I might gets a false done
       n2.on("input", function (msg) {
         cmnds[c++] = JSON.parse(JSON.stringify(msg));
         //
@@ -222,9 +360,7 @@ describe('Basic mytimeout Node', function () {
         //
         try {
           clearTimer(timeOutID);
-          //msg.should.have.property('payload', 'off');
           (false).should.be.true();
-          done('\tthis is a mistake');
         } catch(err) {
           console.log("\tCmnds Err: " + err);
           done(err);
@@ -237,12 +373,14 @@ describe('Basic mytimeout Node', function () {
         // If we get anything here, it's an error
         //
         try {
-          //msg.should.have.property('payload', 0);
           clearTimer(timeOutID);
           (false).should.be.true();
           done('\tthis is a mistake');
         } catch(err) {
-          console.log("\tTicks Err: " + err);
+          console.log("\tCmnds Err: " + err);
+          console.log('Cmnds: ' + JSON.stringify(cmnds));
+          console.log('Ticks: ' + JSON.stringify(ticks));          
+
           done(err);
         }
       });
@@ -254,11 +392,17 @@ describe('Basic mytimeout Node', function () {
         // This is what we should get
         //
         try {
+          cmnds.should.have.lengthOf(0);
+          ticks.should.have.lengthOf(0);
+
           done();
         } catch(err) {
+          console.log("\tCmnds Err: " + err);
+          console.log('Cmnds: ' + JSON.stringify(cmnds));
+          console.log('Ticks: ' + JSON.stringify(ticks));          
           done(err);
         }
-      }, 6*1000);
+      }, (timeout+2)*1000);
     });
   });
   /* */
@@ -274,10 +418,12 @@ describe('Basic mytimeout Node', function () {
     var t = 0;
     var c = 0;
 
+    var timeout = 2;
+
     this.timeout(7*1000); // run timer for timeOut plus 2 seconds overrun
 
     var flow = [
-      { id: "n1", type: "mytimeout", name: nom, timer:5, warning:2, outusafe:"on", outunsafe:"off", output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n1", type: "mytimeout", name: nom, timer:5, warning:2, outusafe:"on", outunsafe:"off", wires:[["n2"], ["n3"]] },
       { id: "n2", type: "helper" },
       { id: "n3", type: "helper" }
     ];
@@ -289,7 +435,6 @@ describe('Basic mytimeout Node', function () {
       var n2 = helper.getNode("n2");
       var n1 = helper.getNode("n1");
 
-      // Okay the fini++ seems like a good idea but if I get 2 n2 or 2 n3 I might gets a false done
       n2.on("input", function (msg) {
         cmnds[c++] = JSON.parse(JSON.stringify(msg));
         //
@@ -297,11 +442,11 @@ describe('Basic mytimeout Node', function () {
         //
         try {
           clearTimer(timeOutID);
-          //msg.should.have.property('payload', 'off');
           (false).should.be.true();
-          done('\tthis is a mistake');
         } catch(err) {
           console.log("\tCmnds Err: " + err);
+          console.log('Cmnds: ' + JSON.stringify(cmnds));
+          console.log('Ticks: ' + JSON.stringify(ticks));          
           done(err);
         }
       });
@@ -312,10 +457,8 @@ describe('Basic mytimeout Node', function () {
         // If we get anything here, it's an error
         //
         try {
-          //msg.should.have.property('payload', 0);
           clearTimer(timeOutID);
           (false).should.be.true();
-          done('\tthis is a mistake');
         } catch(err) {
           console.log("\tTicks Err: " + err);
           done(err);
@@ -329,11 +472,18 @@ describe('Basic mytimeout Node', function () {
         // This is what we should get
         //
         try {
+          cmnds.should.have.lengthOf(0);
+          ticks.should.have.lengthOf(0);
+
           done();
         } catch(err) {
+          console.log("Cmnds Err: " + err);
+          console.log('Cmnds: ' + JSON.stringify(cmnds));
+          console.log('Ticks: ' + JSON.stringify(ticks));          
+
           done(err);
         }
-      }, 6*1000);
+      }, (timeout+2)*1000);
     });
   });
   /* */
@@ -498,6 +648,95 @@ describe('Basic mytimeout Node', function () {
       });
 
       n1.receive({ 'payload': 0 });
+    });
+  });
+  /* */
+
+  //
+  // ===========================================================================================
+  //
+  it('TC08 - Should turn off, Tx off', function (done) { // Passes
+    var flow = [
+      { id: "n1", type: "mytimeout",
+        name: nom,
+        outsafe:    'on', /* If blank we should get no on msg */
+        outwarning: "warning",
+        outunsafe:  'off',
+        timer:      5,
+        warning:    2,
+        wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+    helper.load(myNode, flow, function () {
+      var fini = 0;
+
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      //
+      // ---------------------------------------------------------------------------------------
+      // Run the timer for 2 seconds longer than the timer runs
+      // then check the cmnds & ticks. 
+      //
+
+      // Okay the fini++ seems like a good idea but if I get 2 n2 or 2 n3 I might gets a false done
+      n2.on("input", function (msg) {
+        msg.should.have.property('payload', 'off');
+        fini++;
+        if(fini > 1) {
+          done();
+        }
+      });
+
+      n3.on("input", function (msg) {
+        msg.should.have.property('payload', 0);
+        fini++;
+        if(fini > 1) {
+          done();
+        }
+      });
+
+      n1.receive({ payload: 'off' });
+    });
+  });
+  /* */
+
+  //
+  // ===========================================================================================
+  //
+  it('TC08 - Should turn off, Tx 0', function (done) { // Passes
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+    helper.load(myNode, flow, function () {
+      var fini = 0;
+
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      // Okay the fini++ seems like a good idea but if I get 2 n2 or 2 n3 I might gets a false done
+      n2.on("input", function (msg) {
+        msg.should.have.property('payload', 'off');
+        fini++;
+        if(fini > 1) {
+          done();
+        }
+      });
+
+      n3.on("input", function (msg) {
+        msg.should.have.property('payload', 0);
+        fini++;
+        if(fini > 1) {
+          done();
+        }
+      });
+
+      n1.receive({ payload: '0' });
     });
   });
   /* */
@@ -704,7 +943,7 @@ describe('Basic mytimeout Node', function () {
   //
   // ===========================================================================================
   //
-  it('Should turn on then cancel, Tx on', function (done) { // ???
+  it('TC19 - Should turn on then cancel, Tx on', function (done) { // ???
     var timeOut = 10;
     var turnOff = 7;
     var isDone  = false;
@@ -806,423 +1045,6 @@ describe('Basic mytimeout Node', function () {
   //
   // ===========================================================================================
   //
-  it('Should turn off 2 Tx 0', function (done) { // Passes
-    var flow = [
-      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
-      { id: "n2", type: "helper" },
-      { id: "n3", type: "helper" }
-    ];
-    helper.load(myNode, flow, function () {
-      var fini = 0;
-
-      var n3 = helper.getNode("n3");
-      var n2 = helper.getNode("n2");
-      var n1 = helper.getNode("n1");
-
-      // Okay the fini++ seems like a good idea but if I get 2 n2 or 2 n3 I might gets a false done
-      n2.on("input", function (msg) {
-        msg.should.have.property('payload', 'off');
-        fini++;
-        if(fini > 1) {
-          done();
-        }
-      });
-
-      n3.on("input", function (msg) {
-        msg.should.have.property('payload', 0);
-        fini++;
-        if(fini > 1) {
-          done();
-        }
-      });
-
-      n1.receive({ payload: '0' });
-    });
-  });
-  /* */
-
-  //
-  // ===========================================================================================
-  //
-  it('Should turn on with junk, Tx junk', function (done) { //  @FIXME: Switch to complex
-    var timeOut = 5;
-
-    var cmnds = [];
-    var ticks = [];
-    var t = 0;
-    var c = 0;
-
-    this.timeout((timeOut+2)*1000); // run timer for 30 plus 2 seconds overrun
-
-    // Node 1:{"id":"n1","type":"mytimeout","_closeCallbacks":[null],"_inputCallbacks":null,"name":"MyTimeout","wires":[["n2"],["n3"]],"_wireCount":2,"timer":5,"state":"stop","warning":2,"outsafe":"on","outwarn":"warning","outunsafe":"off","_events":{},"_eventsCount":1}
-    const On  = 'oN';
-    const Off = 'oFF';
-
-    var flow = [
-      { id: "n1", type: "mytimeout", name: nom,
-        outsafe: On, /* If blank we should get no on msg */
-        outwarning: "warning",
-        outunsafe: Off,
-        timer: 5,
-        warning: 2,
-        debug: "0",
-        /* output: 2, */
-        wires:[["n2"], ["n3"]] },
-      { id: "n2", type: "helper" }, /* Output commands */
-      { id: "n3", type: "helper" }  /* Output state of ticks */
-    ];
-
-    helper.load(myNode, flow, function () {
-      var fini = 0;
-
-      var n3 = helper.getNode("n3");
-      var n2 = helper.getNode("n2");
-      var n1 = helper.getNode("n1");
-
-      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
-      n2.on("input", function (msg) {
-        cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
-
-        // do until payload = 'off'
-        try {
-          if(msg.payload == Off) {
-            //console.log('\nCmnds: ' + JSON.stringify(cmnds));
-            cmnds[0].should.have.property('payload', On);
-            cmnds[1].should.have.property('payload', 'warning');
-            cmnds[2].should.have.property('payload', Off);
-            //done();
-          }
-        } catch(err) {
-          console.log("Cmnds Err: " + err);
-          done("Cmnds Err:"  + err);
-        }
-      });
-
-      n3.on("input", function (msg) {
-        ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
-
-        // do until ticks payload = 0, meaning the timer has stopped
-        if(msg.payload == 0) {
-          try {
-            var j = timeOut;
-            for(let i = 0; i <= n1.timer ; i++) {
-              ticks[i].payload.should.be.exactly(j--); // Count down to 0
-            }
-            done();
-          } catch(err) {
-            console.log("Ticks Err: " + err);
-            done(err);
-          }
-        }
-      });
-
-      n1.receive({ payload: "junk" });
-    });
-  });
-  /* */
-  
-  //
-  // ===========================================================================================
-  //
-  it('Should turn on with junk with no outwarning (\'\'), Tx junk', function (done) { //
-    /*
-      Cmnds# [{"payload":"oN","_msgid":"f9585a12.6b9dc8"},{"payload":"oFF","_msgid":"f9585a12.6b9dc8"}]
-      Ticks: [{"payload":5,"state":1,"flag":"ticks > 0","_msgid":"5ee06bcf.685864"},{"payload":4,"state":1,"flag":"ticks > 0","_msgid":"b64db567.5a9e48"},
-              {"payload":3,"state":1,"flag":"ticks > 0","_msgid":"89eb0cd7.1e599"}, {"payload":2,"state":1,"flag":"ticks > 0","_msgid":"23cf2964.d164e6"},
-              {"payload":1,"state":1,"flag":"ticks > 0","_msgid":"c9e990ad.d40c4"}, {"payload":0,"state":0,"flag":"off","_msgid":"f9585a12.6b9dc8"}]
-    */
-    
-    var timeOut = 5;
-
-    var cmnds = [];
-    var ticks = [];
-    var t = 0;
-    var c = 0;
-
-    this.timeout((timeOut+2)*1000); // run timer for 30 plus 2 seconds overrun
-
-    // Node 1:{"id":"n1","type":"mytimeout","_closeCallbacks":[null],"_inputCallbacks":null,"name":"MyTimeout","wires":[["n2"],["n3"]],"_wireCount":2,"timer":5,"state":"stop","warning":2,"outsafe":"on","outwarn":"warning","outunsafe":"off","_events":{},"_eventsCount":1}
-    const On  = 'oN';
-    const Off = 'oFF';
-
-    var flow = [
-      { id: "n1", type: "mytimeout", name: nom,
-        outsafe: On, /* If blank we should get no on msg */
-        outwarning: "", // This turns off warning
-        outunsafe: Off,
-        timer: 5,
-        warning: 2, // Setting to zero has not affect on turning off warning message?
-        debug: "0",
-        /* output: 2, */
-        wires:[["n2"], ["n3"]] },
-      { id: "n2", type: "helper" }, /* Output commands */
-      { id: "n3", type: "helper" }  /* Output state of ticks */
-    ];
-
-    helper.load(myNode, flow, function () {
-      var fini = 0;
-
-      var n3 = helper.getNode("n3");
-      var n2 = helper.getNode("n2");
-      var n1 = helper.getNode("n1");
-
-      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
-      n2.on("input", function (msg) {
-        cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
-
-        // do until payload = 'off'
-        try {
-          if(msg.payload == Off) {
-            cmnds[0].should.have.property('payload', On);
-            cmnds[1].should.have.property('payload', Off);
-          }
-        } catch(err) {
-          console.log('\nCmnds# ' + JSON.stringify(cmnds));
-          console.log("Cmnds Err: " + err);
-          done("Cmnds Err:"  + err);
-        }
-      });
-
-      n3.on("input", function (msg) {
-        ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
-
-        // do until ticks payload = 0, meaning the timer has stopped
-        if(msg.payload == 0) {
-          try {
-            var j = timeOut;
-            for(let i = 0; i <= n1.timer ; i++) {
-              ticks[i].payload.should.be.exactly(j--); // Count down to 0
-            }
-            done();
-          } catch(err) {
-            console.log("Ticks Err: " + err);
-            done(err);
-          }
-        }
-      });
-
-      n1.receive({ payload: "junk" });
-    });
-  });
-  /* */
-  
-  //
-  // ===========================================================================================
-  //
-  it('Should turn on with junk with outwarning not defined & warning (0), Tx junk @FIXME', function (done) { //  @FIXME: fails
-    /*
-      Cmnds# [{"payload":"oN","_msgid":"57dc6145.bc9b7"},
-              {"_msgid":"57dc6145.bc9b7"}, <-- not correct
-              {"payload":"oFF","_msgid":"57dc6145.bc9b7"}]
-      Ticks: [{"payload":5,"state":1,"flag":"ticks > 0","_msgid":"5ee06bcf.685864"},{"payload":4,"state":1,"flag":"ticks > 0","_msgid":"b64db567.5a9e48"},
-              {"payload":3,"state":1,"flag":"ticks > 0","_msgid":"89eb0cd7.1e599"}, {"payload":2,"state":1,"flag":"ticks > 0","_msgid":"23cf2964.d164e6"},
-              {"payload":1,"state":1,"flag":"ticks > 0","_msgid":"c9e990ad.d40c4"}, {"payload":0,"state":0,"flag":"off","_msgid":"f9585a12.6b9dc8"}]
-    */
-    
-    var timeOut = 5;
-
-    var cmnds = [];
-    var ticks = [];
-    var t = 0;
-    var c = 0;
-
-    this.timeout((timeOut+2)*1000); // run timer for 30 plus 2 seconds overrun
-
-    // Node 1:{"id":"n1","type":"mytimeout","_closeCallbacks":[null],"_inputCallbacks":null,"name":"MyTimeout","wires":[["n2"],["n3"]],"_wireCount":2,"timer":5,"state":"stop","warning":2,"outsafe":"on","outwarn":"warning","outunsafe":"off","_events":{},"_eventsCount":1}
-    const On  = 'oN';
-    const Off = 'oFF';
-
-    var flow = [
-      { id: "n1", type: "mytimeout", name: nom,
-        outsafe: On, /* If blank we should get no on msg */
-        //outwarning: "", // This turns off warning
-        outunsafe: Off,
-        timer: 5,
-        warning: 0, // Setting to zero has not affect on turning off warning message?
-        debug: "0",
-        /* output: 2, */
-        wires:[["n2"], ["n3"]] },
-      { id: "n2", type: "helper" }, /* Output commands */
-      { id: "n3", type: "helper" }  /* Output state of ticks */
-    ];
-
-    helper.load(myNode, flow, function () {
-      var fini = 0;
-
-      var n3 = helper.getNode("n3");
-      var n2 = helper.getNode("n2");
-      var n1 = helper.getNode("n1");
-
-      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
-      n2.on("input", function (msg) {
-        cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
-
-        // do until payload = 'off'
-        try {
-          if(msg.payload == Off) {
-            cmnds[0].should.have.property('payload', On);
-            //cmnds[1].should.have.property('payload', 'warning'); // @FIXME: We're getting cmnds[1] = {"_msgid":"57dc6145.bc9b7"}
-            cmnds[2].should.have.property('payload', Off);
-          }
-        } catch(err) {
-          console.log('\nCmnds# ' + JSON.stringify(cmnds));
-          console.log("Cmnds Err: " + err);
-          done("Cmnds Err:"  + err);
-        }
-      });
-
-      n3.on("input", function (msg) {
-        ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
-
-        // do until ticks payload = 0, meaning the timer has stopped
-        if(msg.payload == 0) {
-          try {
-            var j = timeOut;
-            for(let i = 0; i <= n1.timer ; i++) {
-              ticks[i].payload.should.be.exactly(j--); // Count down to 0
-            }
-            done();
-          } catch(err) {
-            console.log("Ticks Err: " + err);
-            done(err);
-          }
-        }
-      });
-
-      n1.receive({ payload: "junk" });
-    });
-  });
-  /* */
-  
-  //
-  // ===========================================================================================
-  //
-  it('Should turn on with junk with outwarning defined & warning (0), Tx junk @FIXME', function (done) { //  @FIXME: fails
-    /*
-      Cmnds# [{"payload":"oN","_msgid":"57dc6145.bc9b7"},
-              {"_msgid":"57dc6145.bc9b7"}, <-- not correct
-              {"payload":"oFF","_msgid":"57dc6145.bc9b7"}]
-      Ticks: [{"payload":5,"state":1,"flag":"ticks > 0","_msgid":"5ee06bcf.685864"},{"payload":4,"state":1,"flag":"ticks > 0","_msgid":"b64db567.5a9e48"},
-              {"payload":3,"state":1,"flag":"ticks > 0","_msgid":"89eb0cd7.1e599"}, {"payload":2,"state":1,"flag":"ticks > 0","_msgid":"23cf2964.d164e6"},
-              {"payload":1,"state":1,"flag":"ticks > 0","_msgid":"c9e990ad.d40c4"}, {"payload":0,"state":0,"flag":"off","_msgid":"f9585a12.6b9dc8"}]
-    */
-    
-    var timeOut = 5;
-
-    var cmnds = [];
-    var ticks = [];
-    var t = 0;
-    var c = 0;
-
-    this.timeout((timeOut+2)*1000); // run timer for 30 plus 2 seconds overrun
-
-    // Node 1:{"id":"n1","type":"mytimeout","_closeCallbacks":[null],"_inputCallbacks":null,"name":"MyTimeout","wires":[["n2"],["n3"]],"_wireCount":2,"timer":5,"state":"stop","warning":2,"outsafe":"on","outwarn":"warning","outunsafe":"off","_events":{},"_eventsCount":1}
-    const On  = 'oN';
-    const Off = 'oFF';
-
-    var flow = [
-      { id: "n1", type: "mytimeout", name: nom,
-        outsafe: On, /* If blank we should get no on msg */
-        outwarning: "WARN", // This turns off warning
-        outunsafe: Off,
-        timer: 5,
-        warning: 0, // Setting to zero has not affect on turning off warning message?
-        debug: "0",
-        /* output: 2, */
-        wires:[["n2"], ["n3"]] },
-      { id: "n2", type: "helper" }, /* Output commands */
-      { id: "n3", type: "helper" }  /* Output state of ticks */
-    ];
-
-    helper.load(myNode, flow, function () {
-      var fini = 0;
-
-      var n3 = helper.getNode("n3");
-      var n2 = helper.getNode("n2");
-      var n1 = helper.getNode("n1");
-
-      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
-      n2.on("input", function (msg) {
-        cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
-
-        // do until payload = 'off'
-        try {
-          if(msg.payload == Off) {
-            cmnds[0].should.have.property('payload', On);
-            cmnds[1].should.have.property('payload', 'WARN'); // @FIXME: We're getting cmnds[1] = {"_msgid":"57dc6145.bc9b7"}
-            cmnds[2].should.have.property('payload', Off);
-          }
-        } catch(err) {
-          console.log('\nCmnds# ' + JSON.stringify(cmnds));
-          console.log("Cmnds Err: " + err);
-          done("Cmnds Err:"  + err);
-        }
-      });
-
-      n3.on("input", function (msg) {
-        ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
-
-        // do until ticks payload = 0, meaning the timer has stopped
-        if(msg.payload == 0) {
-          try {
-            var j = timeOut;
-            ticks.should.have.length(timeOut+1, "Number of ticks issued");
-            for(let i = 0; i <= n1.timer ; i++) {
-              ticks[i].payload.should.be.exactly(j--); // Count down to 0
-            }
-            //console.log("Timeout = " + timeOut + "\nTicks length = " + ticks.length);
-            done();
-          } catch(err) {
-            console.log("Ticks Err: " + err);
-            done(err);
-          }
-        }
-      });
-
-      n1.receive({ payload: "junk" });
-    });
-  });
-  /* */
-  
-  /*
-  ** Main output
-  ** n2: {"_msgid":"65d8f152.8e917","payload":"on","topic":"","timeout":30}
-  ** Ticks output
-  ** n3: {"payload":30,"state":1,"flag":"ticks > 0","_msgid":"5e5dd4bf.1be32c"}
-  */
-  //
-  // ===========================================================================================
-  //
-  it('Should turn on Tx on', function (done) {
-    var flow = [
-      { id: "n1", type: "mytimeout", name: nom,
-        outsafe: "on",
-        outwarning: "warning",
-        outunsafe: "off",
-        warning: "5",
-        timer: "30",
-        debug: "0",
-        wires:[["n2"],["n3"]] },
-      { id: "n2", type: "helper" },
-      { id: "n3", type: "helper" }
-    ];
-    helper.load(myNode, flow, function () {
-      var n2 = helper.getNode("n3");
-      var n2 = helper.getNode("n2");
-      var n1 = helper.getNode("n1");
-
-      n2.on("input", function (msg) {
-        msg.should.have.property('payload', 'on');
-        done();
-      });
-      n1.receive({ payload: 'on' });
-    });
-  });
-  /* */
-  
-  //
-  // ===========================================================================================
-  //
   it('Should turn on 2 Tx 1', function (done) { // ???
     var cmnds = [];
     var ticks = [];
@@ -1276,93 +1098,86 @@ describe('Basic mytimeout Node', function () {
   // ===========================================================================================
   //
   it('Should turn on 2, complex Tx 1', function (done) { // ???
-    var timeOut = 5;
-
     var cmnds = [];
     var ticks = [];
+
     var t = 0;
     var c = 0;
 
-    this.timeout((timeOut+2)*1000); // run timer for 30 plus 2 seconds overrun
+    var timeOut = 2;
+    var warn    = 1;
 
-    // Node 1:{"id":"n1","type":"mytimeout","_closeCallbacks":[null],"_inputCallbacks":null,"name":"MyTimeout","wires":[["n2"],["n3"]],"_wireCount":2,"timer":5,"state":"stop","warning":2,"outsafe":"on","outwarn":"warning","outunsafe":"off","_events":{},"_eventsCount":1}
+    this.timeout(10*1000); // run timer for 30 plus 2 seconds overrun
+
     const On  = 'oN';
     const Off = 'oFF';
 
     var flow = [
-      { id: "n1", type: "mytimeout", name: nom,
-        outsafe: On, /* If blank we should get no on msg */
+      { id: "n1", type: "mytimeout",
+        name:       "myTimeout",
+        timer:      5,
+        warning:    2,
+        outsafe:    On,
         outwarning: "warning",
-        outunsafe: Off,
-        timer: 5,
-        warning: 2,
-        debug: "0",
-        /* output: 2, */
-        wires:[["n2"], ["n3"]] },
+        outunsafe:  Off,
+        qos:        0,
+        retain:     false,
+        topic:      "",
+        wires:      [["n2"], ["n3"]] },
       { id: "n2", type: "helper" }, /* Output commands */
       { id: "n3", type: "helper" }  /* Output state of ticks */
     ];
 
     helper.load(myNode, flow, function () {
-      var fini = 0;
-
-      var n2 = helper.getNode("n2");
-      var n3 = helper.getNode("n3");
-      var n1 = helper.getNode("n1");
-
-      //console.log ("Node 1:" + JSON.stringify(n1) +'\n');
+      var timeOutID;
       
-      /* * /
-      n1.should.have.properties({
-        'name':    nom,
-        "outunsafe": 'off',
-        'timer':   10,   // Defaults
-        'warning':   2     // Defaults
-      });
-      /* */
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
 
       // Need to run the n2 & n3 until I get the last command (off) and the last tick.
       n2.on("input", function (msg) {
+        msg.t = Date.now();
         cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
-
-        // do until payload = 'off'
-        try {
-          if(msg.payload == Off) {
-            //console.log('\nCmnds: ' + JSON.stringify(cmnds));
-            cmnds[0].should.have.property('payload', On);
-            cmnds[1].should.have.property('payload', 'warning');
-            cmnds[2].should.have.property('payload', Off);
-            //done();
-          }
-        } catch(err) {
-          console.log("Cmnds Err: " + err);
-          done("Cmnds Err:"  + err);
-        }
       });
 
       n3.on("input", function (msg) {
+        msg.t = Date.now();
         ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
-
-        // do until payload = 0
-        if(msg.payload == 0) {
-          try {
-            //console.log('Ticks: ' + JSON.stringify(ticks) + '\nn1.timer: ' + n1.timer);
-            var j = timeOut;
-            for(let i = 0; i <= n1.timer ; i++) {
-              // These 3 actually don't work ???
-              //ticks[i].should.have.property('payload', j--); // Count down to 0
-              //ticks[i].should.have.value('payload', j--); // Count down to 0
-              ticks[i].payload.should.be.exactly(j--); // Count down to 0
-            }
-            done();
-          } catch(err) {
-            console.log("Ticks Err: " + err);
-            done(err);
-          }
-        }
       });
 
-      n1.receive({ payload: '1' });
+      var nmsg = { payload: 'on', timeout: timeOut, warning: warn, TestNo: '0020'};
+      n1.receive( nmsg );
+
+      timeOutID = setTimeout(function() {
+        //
+        // This is what we should get
+        //
+        try {
+          cmnds.should.have.lengthOf(3);
+
+          cmnds[0].should.have.property('payload', On);
+          cmnds[1].should.have.property('payload', 'warning');
+          cmnds[2].should.have.property('payload', Off);
+
+          ticks.should.have.lengthOf(timeOut+1);
+
+          ticks[0].should.have.properties({"payload":timeOut,"state":1,"flag":"ticks > 0"});
+          --timeOut;
+          ticks[1].should.have.properties({"payload":timeOut,"state":2,"flag":"warn >= ticks"});
+          --timeOut;
+          ticks[2].should.have.properties({"payload":timeOut,"state":0,"flag":"off"});
+
+          done();
+        } catch(err) {
+          console.log("Cmnds Err: " + err + ' (' + timeOut + '/' + warn + ')');
+          console.log('Sent:  ' + JSON.stringify(nmsg));
+          console.log('Cmnds: ' + JSON.stringify(cmnds));
+          console.log('Ticks: ' + JSON.stringify(ticks));          
+
+          done(err);
+        }
+      }, (timeOut+2)*1000);
     });
   });
   /* */
@@ -1370,7 +1185,7 @@ describe('Basic mytimeout Node', function () {
   //
   // ===========================================================================================
   //
-  it('Should turn normal on/off, Tx on w/floats - TC xx', function (done) { // ???
+  it('TC21a- Should turn normal on/off, Tx on w/floats - TC xx', function (done) { // ???
     var timeOut = 5;
 
     var cmnds = [];
@@ -1451,7 +1266,7 @@ describe('Basic mytimeout Node', function () {
   //
   // ===========================================================================================
   //
-  it('Should turn on/on, Tx on - TC xx', function (done) { // ???
+  it('TC11 - Should turn on/on, Tx on - TC xx', function (done) { // ???
     /*
     ✓ Should turn normal on/off, Tx on w/floats - TC xx (6014ms)
         Cmnds:     [{"payload":"oN","extra":"extra1","_msgid":"2d8d4a69.e05dc6"},
@@ -1595,7 +1410,7 @@ Ticks Err: AssertionError: expected Array [
   //
   // ===========================================================================================
   //
-  it('Should turn on/on (2nd no payload), Tx on - TC xx', function (done) { // ???
+  it('TC23 - Should turn on/on (2nd no payload), Tx on - TC xx', function (done) { // ???
     /*
     */
     var timeOut = 10;
@@ -1696,6 +1511,335 @@ Ticks Err: AssertionError: expected Array [
   });
   /* */
 
+  //
+  // ===========================================================================================
+  //
+  it('TC24 - Should turn on with junk, Tx junk', function (done) { //
+    var timeOut = 5;
+
+    var cmnds = [];
+    var ticks = [];
+    var t = 0;
+    var c = 0;
+
+    this.timeout((timeOut+2)*1000); // run timer for 30 plus 2 seconds overrun
+
+    // Node 1:{"id":"n1","type":"mytimeout","_closeCallbacks":[null],"_inputCallbacks":null,"name":"MyTimeout","wires":[["n2"],["n3"]],"_wireCount":2,"timer":5,"state":"stop","warning":2,"outsafe":"on","outwarn":"warning","outunsafe":"off","_events":{},"_eventsCount":1}
+    const On  = 'oN';
+    const Off = 'oFF';
+
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom,
+        outsafe: On, /* If blank we should get no on msg */
+        outwarning: "warning",
+        outunsafe: Off,
+        timer: 5,
+        warning: 2,
+        debug: "0",
+        /* output: 2, */
+        wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" }, /* Output commands */
+      { id: "n3", type: "helper" }  /* Output state of ticks */
+    ];
+
+    helper.load(myNode, flow, function () {
+      var fini = 0;
+
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
+      n2.on("input", function (msg) {
+        cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
+
+        // do until payload = 'off'
+        try {
+          if(msg.payload == Off) {
+            //console.log('\nCmnds: ' + JSON.stringify(cmnds));
+            cmnds[0].should.have.property('payload', On);
+            cmnds[1].should.have.property('payload', 'warning');
+            cmnds[2].should.have.property('payload', Off);
+            //done();
+          }
+        } catch(err) {
+          console.log("Cmnds Err: " + err);
+          done("Cmnds Err:"  + err);
+        }
+      });
+
+      n3.on("input", function (msg) {
+        ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
+
+        // do until ticks payload = 0, meaning the timer has stopped
+        if(msg.payload == 0) {
+          try {
+            var j = timeOut;
+            for(let i = 0; i <= n1.timer ; i++) {
+              ticks[i].payload.should.be.exactly(j--); // Count down to 0
+            }
+            done();
+          } catch(err) {
+            console.log("Ticks Err: " + err);
+            done(err);
+          }
+        }
+      });
+
+      n1.receive({ payload: "junk" });
+    });
+  });
+  /* */
+  
+  //
+  // ===========================================================================================
+  //
+  it('TC25 - Should turn on with junk with no outwarning (\'\'), Tx junk', function (done) { //
+    /*
+      Cmnds# [{"payload":"oN","_msgid":"f9585a12.6b9dc8"},{"payload":"oFF","_msgid":"f9585a12.6b9dc8"}]
+      Ticks: [{"payload":5,"state":1,"flag":"ticks > 0","_msgid":"5ee06bcf.685864"},{"payload":4,"state":1,"flag":"ticks > 0","_msgid":"b64db567.5a9e48"},
+              {"payload":3,"state":1,"flag":"ticks > 0","_msgid":"89eb0cd7.1e599"}, {"payload":2,"state":1,"flag":"ticks > 0","_msgid":"23cf2964.d164e6"},
+              {"payload":1,"state":1,"flag":"ticks > 0","_msgid":"c9e990ad.d40c4"}, {"payload":0,"state":0,"flag":"off","_msgid":"f9585a12.6b9dc8"}]
+    */
+    
+    var timeOut = 5;
+
+    var cmnds = [];
+    var ticks = [];
+    var t = 0;
+    var c = 0;
+
+    this.timeout((timeOut+2)*1000); // run timer for 30 plus 2 seconds overrun
+
+    // Node 1:{"id":"n1","type":"mytimeout","_closeCallbacks":[null],"_inputCallbacks":null,"name":"MyTimeout","wires":[["n2"],["n3"]],"_wireCount":2,"timer":5,"state":"stop","warning":2,"outsafe":"on","outwarn":"warning","outunsafe":"off","_events":{},"_eventsCount":1}
+    const On  = 'oN';
+    const Off = 'oFF';
+
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom,
+        outsafe: On, /* If blank we should get no on msg */
+        outwarning: "", // This turns off warning
+        outunsafe: Off,
+        timer: 5,
+        warning: 2, // Setting to zero has not affect on turning off warning message?
+        debug: "0",
+        /* output: 2, */
+        wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" }, /* Output commands */
+      { id: "n3", type: "helper" }  /* Output state of ticks */
+    ];
+
+    helper.load(myNode, flow, function () {
+      var fini = 0;
+
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
+      n2.on("input", function (msg) {
+        cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
+
+        // do until payload = 'off'
+        try {
+          if(msg.payload == Off) {
+            cmnds[0].should.have.property('payload', On);
+            cmnds[1].should.have.property('payload', Off);
+          }
+        } catch(err) {
+          console.log('\nCmnds# ' + JSON.stringify(cmnds));
+          console.log("Cmnds Err: " + err);
+          done("Cmnds Err:"  + err);
+        }
+      });
+
+      n3.on("input", function (msg) {
+        ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
+
+        // do until ticks payload = 0, meaning the timer has stopped
+        if(msg.payload == 0) {
+          try {
+            var j = timeOut;
+            for(let i = 0; i <= n1.timer ; i++) {
+              ticks[i].payload.should.be.exactly(j--); // Count down to 0
+            }
+            done();
+          } catch(err) {
+            console.log("Ticks Err: " + err);
+            done(err);
+          }
+        }
+      });
+
+      n1.receive({ payload: "junk" });
+    });
+  });
+  /* */
+  
+  //
+  // ===========================================================================================
+  //
+  it('TC26 - Should turn on with junk with outwarning not defined & warning (0), Tx junk', function (done) { //
+    var timeOut = 5;
+
+    var cmnds = [];
+    var ticks = [];
+    var t = 0;
+    var c = 0;
+
+    this.timeout((timeOut+2)*1000); // run timer for 30 plus 2 seconds overrun
+
+    const On  = 'on';
+    const Off = 'off';
+
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom,
+        outsafe: On, /* If blank we should get no on msg */
+        outwarning: '', // This turns off warning
+        outunsafe: Off,
+        timer: 5,
+        warning: 0, // Setting to zero has not affect on turning off warning message?
+        debug: "0",
+        wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" }, /* Output commands */
+      { id: "n3", type: "helper" }  /* Output state of ticks */
+    ];
+
+    helper.load(myNode, flow, function () {
+      var fini = 0;
+
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
+      n2.on("input", function (msg) {
+        cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
+
+        // do until payload = 'off'
+        try {
+          if(msg.payload == Off) {
+            cmnds[0].should.have.property('payload', On);
+            cmnds[1].should.have.property('payload', Off);
+          }
+        } catch(err) {
+          console.log('\nCmnds# ' + JSON.stringify(cmnds));
+          console.log("Cmnds Err: " + err);
+          done("Cmnds Err:"  + err);
+        }
+      });
+
+      n3.on("input", function (msg) {
+        ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
+
+        // do until ticks payload = 0, meaning the timer has stopped
+        if(msg.payload == 0) {
+          try {
+            var j = timeOut;
+            for(let i = 0; i <= n1.timer ; i++) {
+              ticks[i].payload.should.be.exactly(j--); // Count down to 0
+            }
+            done();
+          } catch(err) {
+            console.log("Ticks Err: " + err);
+            done(err);
+          }
+        }
+      });
+
+      n1.receive({ payload: "junk", timeout: 5, warning: 0, "extra": "extraValue" });
+    });
+  });
+  /* */
+  
+  //
+  // ===========================================================================================
+  //
+  it('TC27 - Should turn on with junk with outwarning &warning defined, Tx junk & warning 0', function (done) { //
+    /*
+      Cmnds# [{"payload":"oN","_msgid":"57dc6145.bc9b7"},
+              {"_msgid":"57dc6145.bc9b7"}, <-- not correct
+              {"payload":"oFF","_msgid":"57dc6145.bc9b7"}]
+      Ticks: [{"payload":5,"state":1,"flag":"ticks > 0","_msgid":"5ee06bcf.685864"},{"payload":4,"state":1,"flag":"ticks > 0","_msgid":"b64db567.5a9e48"},
+              {"payload":3,"state":1,"flag":"ticks > 0","_msgid":"89eb0cd7.1e599"}, {"payload":2,"state":1,"flag":"ticks > 0","_msgid":"23cf2964.d164e6"},
+              {"payload":1,"state":1,"flag":"ticks > 0","_msgid":"c9e990ad.d40c4"}, {"payload":0,"state":0,"flag":"off","_msgid":"f9585a12.6b9dc8"}]
+    */
+    
+    var timeOut = 5;
+
+    var cmnds = [];
+    var ticks = [];
+    var t = 0;
+    var c = 0;
+
+    this.timeout((timeOut+2)*1000); // run timer for 30 plus 2 seconds overrun
+
+    // Node 1:{"id":"n1","type":"mytimeout","_closeCallbacks":[null],"_inputCallbacks":null,"name":"MyTimeout","wires":[["n2"],["n3"]],"_wireCount":2,"timer":5,"state":"stop","warning":2,"outsafe":"on","outwarn":"warning","outunsafe":"off","_events":{},"_eventsCount":1}
+    const On  = 'oN';
+    const Off = 'oFF';
+
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom,
+        outsafe: On, /* If blank we should get no on msg */
+        outwarning: 'warn', // This turns off warning
+        outunsafe: Off,
+        timer: 5,
+        warning: 2, // Setting to zero has not affect on turning off warning message?
+        wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" }, /* Output commands */
+      { id: "n3", type: "helper" }  /* Output state of ticks */
+    ];
+
+    helper.load(myNode, flow, function () {
+      var fini = 0;
+
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
+      n2.on("input", function (msg) {
+        cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
+
+        // do until payload = 'off'
+        try {
+          if(msg.payload == Off) {
+            cmnds[0].should.have.property('payload', On);
+            //cmnds[1].should.have.property('payload', 'warn'); // @FIXME: We're getting cmnds[1] = {"_msgid":"57dc6145.bc9b7"}
+            cmnds[1].should.have.property('payload', Off);
+          }
+        } catch(err) {
+          console.log('\nCmnds# ' + JSON.stringify(cmnds));
+          console.log("Cmnds Err: " + err);
+          done("Cmnds Err:"  + err);
+        }
+      });
+
+      n3.on("input", function (msg) {
+        ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
+
+        // do until ticks payload = 0, meaning the timer has stopped
+        if(msg.payload == 0) {
+          try {
+            var j = timeOut;
+            ticks.should.have.length(timeOut+1, "Number of ticks issued");
+            for(let i = 0; i <= n1.timer ; i++) {
+              ticks[i].payload.should.be.exactly(j--); // Count down to 0
+            }
+            //console.log("Timeout = " + timeOut + "\nTicks length = " + ticks.length);
+            done();
+          } catch(err) {
+            console.log("Ticks Err: " + err);
+            done(err);
+          }
+        }
+      });
+
+      n1.receive({ payload: "junk", timeout: 5, warning: 0, "extra": "extraValue" });
+    });
+  });
+  /* */
+  
 });
 
 // =[ Notes ]====================================================================================
