@@ -7,23 +7,29 @@ var   myNode = require('../mytimeout.js');
 helper.init(require.resolve('node-red'));
 
 var nom =  'MyTimeout';
+var rString = 'No reason.';
 
 var timeoutID;
 
+// Tried to use this in a catch(cb)
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises
+let cb = function(err) {
+  console.log('\tPromise catch: '+ err);
+}
+
 // Returns a promise, this one has no resolve, just the reject that occurs immediately
 let getFailingPromise = function() {
-
   return new Promise(function(resolve, reject) {
     // simply fail on the next tick
     timeoutID = setTimeout(function() {
-      reject(new Error('No reason.'));
+      reject(new Error(rString));
     }); // If the delay parameter is omitted, a value of 0 is used, meaning execute "immediately", or more accurately, the next event cycle
     // The returned timeoutID is a positive integer value which identifies the timer created by the call to setTimeout(); this value can be passed to clearTimeout() to cancel the timeout.
+    //}).catch(cb); // Fails if I do this (with a 2000 ms timeout)
   });
 }
 
 describe('X Promise tests', function () {
-
   beforeEach(function (done) {
     helper.startServer(done);
   });
@@ -36,18 +42,184 @@ describe('X Promise tests', function () {
   });
   /* */
 
-  it('should fail and I should catch it', function(done) {
+  //
+  // ===========================================================================================
+  //
+  it('TC01 - Dummy, should be true', function (done) {
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+
+    try {
+      helper.load(myNode, flow, function () {
+        try {
+          (true).should.be.true();
+          done();
+        } catch(err) {
+          console.log('Ooops');
+          done(err);
+        }
+      });
+    } catch(err) {
+      console.log(err);
+      done();
+    }
+  });
+  /* */
+
+  //
+  // ===========================================================================================
+  //
+  it('TC02 - Dummy, should be false', function (done) {
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+        
+    try {
+      helper.load(myNode, flow, function () {
+        try {
+          (false).should.be.true();  // this will caise this test case to fail (and pass)
+          //(true).should.be.true(); // This will cause this test case to succeed (and not pass)
+          done("Nuts, should have failed!"); // If we get this, test case fails
+        } catch(err) {
+          //console.log('Not Ooops');          // If we get this, test case passes
+          done();
+        }
+      });
+      //console.log('Hmmm');
+    } catch(err) {
+      console.log(err);
+      done();
+    }
+  });
+  /* */
+
+  it('TC03 - should fail and I should catch it', function(done) {
     let promise = getFailingPromise();
     promise.catch(function(err) {
 
-      console.log('\tError message:', err.message); // => Error message: No reason.
-      console.log(err.message === 'No reason.');  // => true
-      err.message.should.equal('No reason.');
-      done(err.message !== 'No reason.' ? new Error('Failed') : undefined); // => Never reached.
+      try {
+        var a = err.message === rString;
+        var b = err.message == rString;
+        var s = '\t\terr.message === \'' + rString + '\' (' + a + ')';
+        //console.log('err.message === \'' + rString + '\' (' + a + ')');  // => true *** DON'T DO THIS! ***
+        //console.log(s);  // => true
+        //console.log('\t\tError message:', err.message + '(' + a + '/' + b + ')');                                           // => Error message: No reason.
+        //err.message.should.equal(rString);
+        //done(err.message !== rString ? new Error('\tFailed (' + err + ')') : undefined);      // => Never reached.
+        done();                                                                                 // => Never reached.
+      } catch(err) {
+        //done(err.message !== rString ? new Error('\tFailed without \'' + rString +'\' ;-) (' + err + ')') : undefined); // => Never reached.
+        done(err)
+      }        
     });
   });
-  /* * /
+  /* */
 
+  // sleep 3; mosquitto_pub -t 'home/test/mytimeout' -m '{"payload": "on", "timeout": 2, "warning": 1, "TestNo":"'0002'" }'
+  /* */
+  //
+  // ===========================================================================================
+  //
+  it('TC04 - timed on, minimal time (2/1), TX on', function (done) {
+    var cmnds = [];
+    var ticks = [];
+
+    var t = 0;
+    var c = 0;
+
+    var timeout = 2;
+    var warn    = 1;
+
+    this.timeout(10*1000); // run timer for timeOut plus 2 seconds overrun
+
+    var flow = [
+      { id: "n1", type: "mytimeout",
+        name:       "myTimeout",
+        timer:      5,
+        warning:    2,
+        outsafe:    "on",
+        outwarning: "warning",
+        outunsafe:  "off",
+        qos:        0,
+        retain:     false,
+        topic:      "",
+        wires:      [["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+
+    helper.load(myNode, flow, function() {
+      var timeOutID;
+
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      // Okay the fini++ seems like a good idea but if I get 2 n2 or 2 n3 I might gets a false done
+      n2.on("input", function (msg) {
+        msg.t = Date.now();
+        cmnds[c++] = JSON.parse(JSON.stringify(msg));
+        //
+        // Just collect the inputs. This time we'll get on/warning/off
+        //
+        
+      });
+
+      n3.on("input", function (msg) {
+        msg.t = Date.now();
+        ticks[t++] = JSON.parse(JSON.stringify(msg));
+        //
+        //  Just collect the inputs.
+        //
+      });
+      
+      var nmsg = { payload: 'on', timeout: timeout, warning: warn, TestNo: '0004'};
+      n1.receive( nmsg );
+
+      //
+      // ---------------------------------------------------------------------------------------
+      // Timer
+      //
+      timeOutID = setTimeout(function() {
+        //
+        // This is what we should get
+        //
+        try {
+          // Now check the cmnds
+          cmnds.should.have.lengthOf((3));
+
+          cmnds[0].should.have.properties({"payload": "on",      "timeout": timeout, warning: warn, TestNo: "0004"});
+          cmnds[1].should.have.properties({"payload": "warning", "timeout": timeout, warning: warn, TestNo: "0004"});
+          cmnds[2].should.have.properties({"payload": "off",     "timeout": timeout, warning: warn, TestNo: "0004"});
+
+          // Now check the ticks
+          ticks.should.have.lengthOf(timeout+1);
+
+          ticks[0].should.have.properties({"payload":timeout,"state":1,"flag":"ticks > 0"});
+          --timeout;
+          ticks[1].should.have.properties({"payload":timeout,"state":2,"flag":"warn >= ticks"});
+          --timeout;
+          ticks[2].should.have.properties({"payload":timeout,"state":0,"flag":"off"});
+
+          done();
+        } catch(err) {
+          console.log("Cmnds Err: " + err);
+          console.log('Sent:  ' + JSON.stringify(nmsg));
+          console.log('Cmnds: ' + JSON.stringify(cmnds));
+          console.log('Ticks: ' + JSON.stringify(ticks));          
+          done(err);
+        }
+      }, (timeout+2)*1000);
+    });
+  });
+  /* */
+
+  /* * /
   //
   // ===========================================================================================
   //
@@ -217,4 +389,8 @@ Promise {
      [Symbol(kWeak)]: WeakReference {} } }
 > Success! Caught the error but ignoring it
 
+smartthings/Snore Outlet/switch
+smartthings/Snore Outlet/switch
+smartthings/Snore Z-Wave/switch
+~/dev/HA/SmartThings/smartthings-mqtt-bridge
 */
