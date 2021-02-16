@@ -6,9 +6,9 @@
 
 Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending it input. It will run until the timer runs out where it will turn off. It can be turned off, stopped or cancelled with the correct input. It can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue to run. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input.
 
-Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the input matches the previously sent output, the message is ignored to avoid an endless loop. But be careful, it the message sent is modified and is no matches the previous message sent, then the new message will be resent and loops will occur. This will cause node-red to become totally unresponsive.
+Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the input matches the previously sent output, the message is ignored to avoid an endless loop. But be careful, it the message sent is modified and does not match the previous message sent, then the message will be sent and loops will occur. This will cause node-red to become totally unresponsive.
 
-* Requirement
+* Requirements
 
 1. node-red-contrib-mytimeout (mytimeout) is a countdown timer
 2. mytimeout can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue to run.
@@ -31,7 +31,7 @@ Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the i
 
 * Test cases
 
-These are not unit tests, I haven't figured out who to write a unit test for this node-red node. These are node functionality / itegration test.
+These are not unit tests, I haven't figured out how to write a unit test for this node-red node. These are node functionality / itegration tests.
 
 ** Samples:
 *** Basic
@@ -43,6 +43,17 @@ This is a standard minimal JSON object sent to mytimeout.  We can drop the _msgi
 This is the default mytimeout node used for testing. Since we need to set it up a 5/2 should work well enough.
 
 #+begin_src js
+      { id: "n1", type: "mytimeout",
+        name:       "myTimeout",
+        outsafe:    "on", /* If blank we should get no on msg */
+        outwarning: "warning",
+        outunsafe:  "off",
+        timer:      2,
+        warning:    1,
+        wires:      [["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+
 { id: "n1", type: "mytimeout",
   name:       nom,
   outsafe:    'on', /* If blank we should get no on msg */
@@ -50,7 +61,7 @@ This is the default mytimeout node used for testing. Since we need to set it up 
   outunsafe:  'off',
   timer:      5,
   warning:    2,
-  wires:[["n2"], ["n3"]] },
+  wires:      [["n2"], ["n3"]] },
 #+end_src
 
 **** sent
@@ -123,7 +134,9 @@ This is the default mytimeout node used for testing. Since we need to set it up 
 {"payload":0,"state":0,"flag":"off","_msgid":"49d6f819.7b4eb8"}
 #+end_src
 
-** mytimeout Node
+** TC mytimeout Node
+
+*** [ ] - Prerequisite
 
 Because this testing doesn't use the html config we need to add the defaults we want to use in the node setup
 
@@ -152,6 +165,42 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 **** Expected results
 
 *** [ ] - TC  1 - Base test, send on
+
+**** Test
+
+- Run with default flow, test for on/warning/off, number of commands, number of ticks
+
+**** Expected results
+
+- 'on' in cmnds[0]
+- 'warning' in cmnds[1]
+- 'off' in cmnds[0]
+- cmnds length of 3
+
+- ticks[0] properties ...
+- ticks[2] properties ...
+- ticks[5] properties ...
+- ticks length of 6 (?)
+
+*** [ ] - TC  1 - Base test, send 1
+
+**** Test
+
+- Run with default flow, test for on/warning/off, number of commands, number of ticks
+
+**** Expected results
+
+- 'on' in cmnds[0]
+- 'warning' in cmnds[1]
+- 'off' in cmnds[0]
+- cmnds length of 3
+
+- ticks[0] properties ...
+- ticks[2] properties ...
+- ticks[5] properties ...
+- ticks length of 6 (?)
+
+*** [ ] - TC  1 - Base test, send '1'
 
 **** Test
 
@@ -212,8 +261,15 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 **** Expected results
 - x
 
-*** [ ] - TC  7 - Test off
+*** [ ] - TC  7 - Test off with "off"
 
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC  6a- Test with turn off with "0" and extra attribute
 
 **** Test
 - x
@@ -223,6 +279,14 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 
 *** [ ] - TC  8 - Test off with 0
 
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC  8 - Test off with "0"
 
 **** Test
 - x
@@ -407,7 +471,7 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 **** Expected results
 - x
 
-** mytimeout Node/MQTT flow test
+** TC mytimeout Node/MQTT flow test
 
 *** [ ] - TC 01 - send on, same topic In/Out (full flow test w/mqtt)
 
@@ -428,21 +492,32 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 - x
 
 * Future requirements
+
 1. add support for pause
 2. add support for {{mustache}} in HTML config (see template core and testing code)
-3. 
+3. add support for copying the rest of the incoming message to both outputs
+4. add support for inverted logic
 
-* Commands
+* Commands - Incoming message structure
 
-- '0'      -
-- '1'      -
-- 'on'     -
-- 'off'    -
-- 'stop'   -
-- 'cancel' -
-- 'pause'  -
-- junk     - really need to properly define this
-- blank    - need to define this
+#+begin_src js
+{"payload":"on"}
+or
+{"payload":"on","timeout":5}
+or
+{"payload":"on","timeout":5,"warning":2}
+#+end_src
+
+- payload
+  - '1'      -
+  - 'on'     -
+  - '0'      -
+  - 'off'    -
+  - 'stop'   -
+  - 'cancel' -
+  - 'pause'  -
+  - junk     - really need to properly define this
+  - blank    - need to define this
 
 * ticks format
 ** states
@@ -466,6 +541,343 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 - repeat (not used)
 - again (not used)
 - inverted logic (not yet implemented)
+
+* Notes
+
+** CLI commands
+
+tput clear; npm test ; ps ax | egrep node-red | egrep -v grep
+
+mosquitto_sub -v -t home/test/switchTimer | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
+bg
+
+mosquitto_sub -v -t home/test/mytimeout     | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
+bg
+mosquitto_sub -v -t home/test/mytimeoutJson | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
+bg
+mosquitto_sub -v -t home/test/ticksJson     | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file} # ^Z
+bg
+
+mosquitto_pub -t 'home/test/mytimeout'   -m '{ "payload": "on", "timeout" : 10, "warning": 2 }' && sleep 3 && mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "stop"}' && sleep 10 && echo
+mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "on", "timeout" : 10, "warning": 2 }' && sleep 3 && mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "stop"}' && sleep 10 && echo
+mosquitto_pub -t 'home/test/switchTimer' -m '{ "payload": "", "timeout" : 4, "warning": 2 }'
+
+mosquitto_pub -t 'home/test/mytimeout' -m '{ "payload": "", "timeout" : 4, "warning": 2 }'
+
+2021-01-13_02:26:07.1610522767 home/test/switchTimer { "payload": "junk", "timer" : 4, "warning": 2 }
+2021-01-13_02:26:07.1610522767 home/test/switchTimer on
+2021-01-13_02:26:35.1610522795 home/test/switchTimer warning
+2021-01-13_02:26:37.1610522797 home/test/switchTimer off
+
+mosquitto_sub -v -t home/test/switchTimer | awk '{ print strftime("%F_%T.%s"), "" $0; fflush(); }' | tee ${file}
+
+mocha t/txample_spec.js
+
+** Notes & Links
+
+https://github.com/ksvan/node-red-contrib-verisure/wiki/Detailed-setup---automated-nodered-test
+
+*** Sample TCs
+
+#+begin_src js
+  /* */
+  //
+  // ===========================================================================================
+  //
+  it("TCxx - Dummy, should be timed", function (done) {
+    var testCase = "000x";
+
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom, output: 2, wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+
+    try {
+      helper.load(myNode, flow, function () {
+        try {
+          (true).should.be.true();
+          done();
+        } catch(err) {
+          console.log("Ooops");
+          done(err);
+        }
+      });
+    } catch(err) {
+      console.log(err);
+      done();
+    }
+  });
+  /* */
+
+  /* * /
+  //
+  // ===========================================================================================
+  //
+  // https://github.com/node-red/node-red/blob/15a600c763cfeafee72016e05113ebca5358a3be/test/nodes/core/function/10-switch_spec.js#L640
+  it("TCxx - should treat non-existant msg property conditional as undefined", function(done) {
+    var flow = [{
+      "id":"switchNode1",
+      "type":"switch",
+      "z":"feee1df.c3263e",
+      "name":"",
+      "property":"payload",
+      "propertyType":"msg",
+      "rules":[{"t":"eq","v":"this.does.not.exist","vt":"msg"}],
+      "checkall":"true",
+      "outputs":1,
+      "x":190,
+      "y":440,
+      "wires":[["helperNode1"]]},
+     {id:"helperNode1", type:"helper", wires:[]}];
+
+    helper.load(switchNode, flow, function() {
+      var switchNode1 = helper.getNode("switchNode1");
+      var helperNode1 = helper.getNode("helperNode1");
+      var received = [];
+
+      helperNode1.on("input", function(msg) {
+        received.push(msg);
+      });
+
+      // First message should be dropped as payload is not undefined
+      switchNode1.receive({topic:"messageOne",payload:""});
+
+      // Second message should pass through as payload is undefined
+      switchNode1.receive({topic:"messageTwo",payload:undefined});
+
+      setTimeout(function() {
+        try {
+          received.should.have.lengthOf(1);
+          received[0].should.have.a.property("topic","messageTwo");
+          done();
+        } catch(err) {
+          done(err);
+        }
+      },500)
+    });
+  });
+  /* */
+
+#+end_src
+
+#+begin_src js
+  /*
+  ** Main output
+  ** n2: {"_msgid":"65d8f152.8e917","payload":"on","topic":"","timeout":30}
+  ** Ticks output
+  ** n3: {"payload":30,"state":1,"flag":"ticks > 0","_msgid":"5e5dd4bf.1be32c"}
+  * /
+  //
+  // ===========================================================================================
+  //
+  it('TC01 - Should turn on Tx on', function (done) {
+    var testCase = "0001";
+    var flow = [
+      { id: "n1", type: "mytimeout",
+        name:       nom,
+        outsafe:    "on",
+        outwarning: "warning",
+        outunsafe:  "off",
+        warning:    "5",
+        timer:      "30",
+        debug:      "0",
+        wires:[["n2"],["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+    helper.load(myNode, flow, function () {
+      var n2 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      n2.on("input", function (msg) {
+        msg.should.have.property("payload", "on");
+        done();
+      });
+      n1.receive({ payload: "on", testCase: testCase });
+    });
+  });
+  /* */
+#+end_src
+
+#+begin_src js
+  /* */
+  //
+  // ===========================================================================================
+  //
+  it("TC01b- Should turn on, Tx on", function (done) { // ???
+    var testCase = "0001b";
+
+    var timeOut = 5;
+    var turnOff = 2;
+    var isDone  = false;
+
+    var cmnds = [];
+    var ticks = [];
+
+    var t = 0;
+    var c = 0;
+
+    this.timeout((timeOut+2)*1000); // run timer for timeOut plus 2 seconds overrun
+
+    // Node 1:{"id":"n1","type":"mytimeout","_closeCallbacks":[null],"_inputCallbacks":null,"name":"MyTimeout","wires":[["n2"],["n3"]],"_wireCount":2,"timer":5,"state":"stop","warning":2,"outsafe":"on","outwarn":"warning","outunsafe":"off","_events":{},"_eventsCount":1}
+    const On  = "on";
+    const Off = "off";
+
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom,
+        outsafe:    On,
+        outwarning: "warning",
+        outunsafe:  Off,
+        timer:      timeOut,
+        warning:    turnOff,
+        debug:      "0",
+        wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },
+      { id: "n3", type: "helper" }
+    ];
+
+    helper.load(myNode, flow, function () {
+      var fini = 0;
+
+      var n3 = helper.getNode("n3");
+      var n2 = helper.getNode("n2");
+      var n1 = helper.getNode("n1");
+
+      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
+      n2.on("input", function (msg) {
+        cmnds[c++] = JSON.parse(JSON.stringify(msg)); // Can't just to cmnds[c++] = msg (not a new copy, just a pointer)
+
+        // do until payload = "off"
+        try {
+          if(msg.payload == Off) {
+            //console.log("\nCmnds: " + JSON.stringify(cmnds));
+            cmnds.should.have.length(3, "Number of commands issued");
+            cmnds[0].should.have.property("payload", On);
+            cmnds[1].should.have.property("payload", 'warning');
+            cmnds[2].should.have.property("payload", Off);
+          }
+        } catch(err) {
+          //console.log ("Node 1:" + JSON.stringify(n1) + "\n");
+          console.log("Cmnds: " + JSON.stringify(cmnds));
+          console.log(`Ticks: ` + JSON.stringify(ticks) + `\nn1.timer: ${n1.timer}\n`);
+
+          console.log("Cmnds Err: " + err);
+          done("Cmnds Err:"  + err);
+        }
+      });
+
+      n3.on("input", function (msg) {
+        ticks[t++] = JSON.parse(JSON.stringify(msg)); // Can't just to ticks[t++] = msg (not a new copy, just a pointer)
+
+        // do until payload = 0
+        if(msg.payload == 0) {
+          try {
+            var j = timeOut; // n1.timer - turnOff;
+            var idx = n1.timer + 1;
+            for(let i = 0; i < idx ; i++) {
+              ticks[i].payload.should.be.exactly(j--); // Count down to 0
+            }
+            
+            done();
+          } catch(err) {
+            console.log("Ticks: " + JSON.stringify(ticks) + `\nn1.timer: ${n1.timer}\n`);
+            console.log("Ticks Err: " + err);
+            done(err);
+          }
+        }
+      });
+
+      n1.receive({ payload: "on", testCase: testCase });
+    });
+  });
+  /* */
+#+end_src
+
+#+begin_src js
+#+end_src
+
+*** Odd results
+
+    ✓ Should turn normal on/off, Tx on w/floats - TC xx (6014ms)
+        Cmnds:     [{"payload":"oN","extra":"extra1","_msgid":"2d8d4a69.e05dc6"},
+                    {"payload":"oN","extra":"extra2","_msgid":"dddb657f.d12eb8"},
+                    {"payload":"warning","extra":"extra2","_msgid":"dddb657f.d12eb8"},
+                    {"payload":"oFF","extra":"extra2","_msgid":"dddb657f.d12eb8"}]
+
+        Ticks:     [{"payload":10,"state":1,"flag":"ticks > 0","_msgid":"89a08871.dcb0c8"},
+                    {"payload":9,"state":1,"flag":"ticks > 0","_msgid":"a48abf83.220cc"},
+                    {"payload":8,"state":1,"flag":"ticks > 0","_msgid":"33ca89f0.30d226"},
+                    {"payload":7,"state":1,"flag":"ticks > 0","_msgid":"5138258e.062ddc"},
+                    {"payload":10,"state":1,"flag":"ticks > 0","_msgid":"89e191fa.b388f"},
+                    {"payload":9,"state":1,"flag":"ticks > 0","_msgid":"b03b1bfa.334ff8"},
+                    {"payload":8,"state":1,"flag":"ticks > 0","_msgid":"23b3c00d.3091d"},
+                    {"payload":7,"state":1,"flag":"ticks > 0","_msgid":"f64bfafe.c7efc8"},
+                    {"payload":6,"state":1,"flag":"ticks > 0","_msgid":"ddd1e1f7.c9e8a"},
+                    {"payload":5,"state":1,"flag":"ticks > 0","_msgid":"39e08930.853336"},
+                    {"payload":4,"state":1,"flag":"ticks > 0","_msgid":"1da0bd7b.8d2983"},
+                    {"payload":3,"state":1,"flag":"ticks > 0","_msgid":"680f940.c242f6c"},
+                    {"payload":2,"state":2,"flag":"warn >= ticks","_msgid":"94c884b3.bd6068"},
+                    {"payload":1,"state":2,"flag":"warn >= ticks","_msgid":"5b080bb1.1be1f4"},
+                    {"payload":0,"state":0,"flag":"off","_msgid":"dddb657f.d12eb8"}]
+
+Ticks Err: AssertionError: expected Array [
+  Object { payload: 10, state: 1, flag: 'ticks > 0',     _msgid: '89a08871.dcb0c8' },
+  Object { payload:  9, state: 1, flag: 'ticks > 0',     _msgid: 'a48abf83.220cc' },
+  Object { payload:  8, state: 1, flag: 'ticks > 0',     _msgid: '33ca89f0.30d226' },
+  Object { payload:  7, state: 1, flag: 'ticks > 0',     _msgid: '5138258e.062ddc' },
+  Object { payload: 10, state: 1, flag: 'ticks > 0',     _msgid: '89e191fa.b388f' },
+  Object { payload:  9, state: 1, flag: 'ticks > 0',     _msgid: 'b03b1bfa.334ff8' },
+  Object { payload:  8, state: 1, flag: 'ticks > 0',     _msgid: '23b3c00d.3091d' },
+  Object { payload:  7, state: 1, flag: 'ticks > 0',     _msgid: 'f64bfafe.c7efc8' },
+  Object { payload:  6, state: 1, flag: 'ticks > 0',     _msgid: 'ddd1e1f7.c9e8a' },
+  Object { payload:  5, state: 1, flag: 'ticks > 0',     _msgid: '39e08930.853336' },
+  Object { payload:  4, state: 1, flag: 'ticks > 0',     _msgid: '1da0bd7b.8d2983' },
+  Object { payload:  3, state: 1, flag: 'ticks > 0',     _msgid: '680f940.c242f6c' },
+  Object { payload:  2, state: 2, flag: 'warn >= ticks', _msgid: '94c884b3.bd6068' },
+  Object { payload:  1, state: 2, flag: 'warn >= ticks', _msgid: '5b080bb1.1be1f4' },
+  Object { payload:  0, state: 0, flag: "off",           _msgid: 'dddb657f.d12eb8' }
+] to have property length of 10 (got 15)
+
+* Results
+
+  Basic mytimeout Node
+    ✓ TC00 - should be loaded
+    ✓ TC01 - timed on, minimal time (2/1), TX on (4010ms)
+    ✓ TC02 - stop, should be timed, TX stop (4008ms)
+    ✓ TC03 - cancel, should be timed, TX cancel (4007ms)
+    ✓ TC05 - Should turn off Tx off
+    ✓ TC06 - Should turn off Tx 0
+    ✓ TC07 - Should on with no warning (warning value as an integer), Tx on (4006ms)
+    ✓ TC08 - Should turn off, Tx off
+    ✓ TC08 - Should turn off, Tx 0
+    ✓ TC11 - Should turn on/on, Tx on (7007ms)
+    ✓ TC11a- Should turn on/'' with warning, Tx on  (7009ms)
+    ✓ TC11b- Should turn on/'' with no warning, Tx on  (7007ms)
+    ✓ TC15 - Should turn on then off, Tx on (4010ms)
+    ✓ TC16 - Should turn on then stop, Tx on (4010ms)
+    ✓ TC19 - Should turn on then cancel, Tx on (4010ms)
+    ✓ TCxx - Should turn on 2 Tx 1 (1006ms)
+    ✓ TC20?- Should turn on 2, complex Tx 1 (4007ms)
+    ✓ TC21a- Should turn normal on/off, Tx on w/floats (6011ms)
+    ✓ TC23 - Should turn on/on (2nd no payload), Tx on - TC xx (15020ms)
+    ✓ TC24 - Should turn on with junk, Tx junk (6012ms)
+    ✓ TC25 - Should turn on with junk with no outwarning (''), Tx junk (6013ms)
+    ✓ TC26 - Should turn on with junk with outwarning not defined & warning (0), Tx junk (6012ms)
+    ✓ TC27 - Should turn on with junk with outwarning &warning defined, Tx junk & warning 0 (6014ms)
+
+  mytimeout Node/MQTT flow test
+    ✓ TC00 - should be loaded
+
+  X Promise tests
+    ✓ TC01 - Dummy, should be true
+    ✓ TC02 - Dummy, should be false
+    ✓ TC03 - should fail and I should catch it
+    ✓ TC04 - timed on, minimal time (2/1), TX on (4007ms)
+
+
+  28 passing (2m)
 
 * -[ Fini ]------------------------------ ----------------------------------------
 ** Emacs Org-mode stuff
