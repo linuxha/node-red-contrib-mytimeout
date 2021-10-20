@@ -3,6 +3,8 @@ Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending i
 
 Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the input matches the previously sent output, the message is ignored to avoid an endless loop.
 
+Moved the default master repos to main repos
+
 ## myTimeout
 MyTimeout started as hacked timer code I stole from Pete Scargill. Pete's code would start a timer running if you sent it any trigger (tickle the timer). It would continue to run if further triggers were sent before the timeout occurred. A trigger was anything sent to the input of the timer.
 
