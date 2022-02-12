@@ -7,7 +7,9 @@
     "test": "mocha ./test/test.js",
     "oldtest": "node ./test/test.js",
     "mytestA": "node -e \"t = require('./mytimeout.js');\"",
-    "mytestB": "echo \"Error: no test specified\" && exit 1"
+    "mytestB": "echo \"Error: no test specified\" && exit 1",
+    "score": "node-red-dev validate --output=scorecard.json",
+    "publish": "npm publish"
   },
   "keywords": [
     "node-red",
@@ -29,6 +31,9 @@
   },
   "dependencies": {
     "node-red": ">=1"
+  },
+  "node-red": {
+    "version": ">=1"
   },
   "engines": {
     "node": ">=10"
