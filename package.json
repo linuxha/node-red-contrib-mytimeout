@@ -27,6 +27,12 @@
       "mytimeout": "mytimeout.js"
     }
   },
+  "dependencies": {
+    "node-red": ">=1"
+  },
+  "engines": {
+    "node": ">=10"
+  },
   "repository": {
     "private": true,
     "type": "git",
