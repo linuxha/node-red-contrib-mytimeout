@@ -1,15 +1,14 @@
 {
   "name": "node-red-contrib-mytimeout",
-  "version": "3.2.2",
+  "version": "3.2.3",
   "description": "A timer that supports setting the run time by passing JSON to the input",
   "main": "mytimeout.js",
   "scripts": {
-    "test": "mocha ./test/test.js",
-    "oldtest": "node ./test/test.js",
-    "mytestA": "node -e \"t = require('./mytimeout.js');\"",
-    "mytestB": "echo \"Error: no test specified\" && exit 1",
-    "score": "node-red-dev validate --output=scorecard.json",
-    "publish": "npm publish"
+    "pretest": "eslint *.js",
+    "test": "mocha --exit \"test/*_spec.js\"",
+    "testB": "mocha --timeout 10000 --exit \"test/*_spec.js\"",
+    "lint": "eslint *.js",
+    "testA": "mocha ./test/test.js"
   },
   "keywords": [
     "node-red",
@@ -30,8 +29,23 @@
       "mytimeout": "mytimeout.js"
     }
   },
+  "node-red": {
+    "version": ">=1"
+  },
   "engines": {
     "node": ">=10"
+  },
+  "devDependencies": {
+    "eslint": "^7.17.0",
+    "eslint-config-standard": "^16.0.2",
+    "eslint-plugin-mocha": "^8.0.0",
+    "eslint-plugin-node": "^11.1.0",
+    "mocha": "^8.2.1",
+    "nock": "^13.0.5",
+    "node-red": "^1.2.7",
+    "node-red-node-test-helper": "^0.2.5",
+    "pkg.json": "^2.0.8",
+    "should": "^13.2.3"
   },
   "repository": {
     "private": true,

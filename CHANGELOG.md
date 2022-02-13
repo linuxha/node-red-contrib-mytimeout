@@ -1,5 +1,13 @@
+## 3.2.3 (February 13, 2022)
+  - Added test suites, not 100% confident all the tests are correct yet
 ## 3.2.2 (February 12, 2022)
+  - Gave up even trying to fix the pre-3.2.0 part of the Change log.
   - Removed unneeded dependency in package.json
+  - Another update to fix 'score' issue
+  - Added Engines and dependencies to package.json
+  - Updated mytimeout.js version to reflect added examples
+  - Updated package version to reflect added examples
+  - Added an example flow to the pacakge
 ## 3.2.1 (February 11, 2022)
   - Oops, missed a few updates
   - Minor change to add examples to the package

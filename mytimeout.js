@@ -79,7 +79,7 @@ module.exports = function(RED) {
         var ignoreCase  = '';
 
         var line        = {};
-        var version     = '3.2.2'; //
+        var version     = '3.2.3'; //
 
         RED.nodes.createNode(this, n);
 
@@ -104,7 +104,7 @@ module.exports = function(RED) {
 
         */
         node.name      = n.name;               // node-input-name       - Name
-        node.warnT     = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
+        node.warning     = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
         node.topic     = n.outtopic;           // node-input-outtopic   - Output topic
         node.outsafe   = n.outsafe;            // node-input-outsafe    - Timer on payload
         node.outwarn   = n.outwarning;         // node-input-outwarning - Warning state payload
@@ -146,7 +146,7 @@ module.exports = function(RED) {
                 ndebug("    msg:        " + JSON.stringify(msg));
                 ndebug("    msg:        " + typeof(msg));
                 ndebug("    node.timer: " + node.timer);
-                ndebug("    node.warnT: " + node.warnT);
+                ndebug("    node.warning: " + node.warning);
                 try {
                     ndebug("    msg.timeout:" + msg.timeout);
                     ndebug("    msg.warning:" + msg.warning);
@@ -160,14 +160,14 @@ module.exports = function(RED) {
             }
             //
             // There are 3 sets of variables
-            // default values (node.timer, node.warnT)
+            // default values (node.timer, node.warning)
             // passed values  (timeout, warn - if any)
             // running values (ticks)
             //
             timeout = msg.timeout||timeout||node.timer;
             timeout = parseInt(timeout);                // ncherry@linuxha.com parseInt()
             if(msg.warning != 0) {
-                warn = msg.warning||warn||node.warnT;
+                warn = msg.warning||warn||node.warning;
             } else {
                 warn = 0;
             }
@@ -178,7 +178,7 @@ module.exports = function(RED) {
             if(n.ndebug) {
                 ndebug("");
                 ndebug("    node.timer: " + node.timer);
-                ndebug("    node.warnT: " + node.warnT);
+                ndebug("    node.warning: " + node.warning);
                 ndebug("    timeout:    " + timeout);
                 ndebug("    warn:       " + warn);
                 ndebug("    ticks:      " + ticks);
@@ -277,7 +277,7 @@ module.exports = function(RED) {
             state = 'stop';
             ticks = -1;
             timeout = parseInt(node.timer);
-            warn    = parseInt(node.warnT);
+            warn    = parseInt(node.warning);
 
             ndebug('=[ fini ]=======================================================================');
         }
@@ -434,7 +434,7 @@ module.exports = function(RED) {
                 ndebug("1 State = " + state);
                 ndebug("1 timeout = " + node.timer + " - node.timer");
                 ndebug("1 timeout = " + timeout + " - timeout");
-                ndebug("1 warning = " + node.warnT);
+                ndebug("1 warning = " + node.warning);
             }
             // =================================================================
             // First we need to drop any message than matches the last message
