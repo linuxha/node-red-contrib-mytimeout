@@ -1,4 +1,9 @@
-## 0.1.0 (October 22, 2019)
+## 3.2.2 (February 12, 2022)
+  - Removed unneeded dependency in package.json
+## 3.2.1 (February 11, 2022)
+  - Oops, missed a few updates
+  - Minor change to add examples to the package
+## 3.2.0 (October 22, 2019)
   - Minor cleanup of comments and updated major version to 3.2.0 for the No On Feature
   - Updated major for the no on feature
   - Merge pull request #25 from linuxha/feature/no_on_payload
@@ -33,7 +38,7 @@
   - Modified newMsg to handle msg.payload { payload, timeout, warning } properly
   - Pushed minor version increment to unstick npm publish
   - Updated with debug option, v2.1.7
-  - 2.1.5
+## 2.1.5 (August 3 2018)
   - Added a debug flag to the node
   - Updated the documentation and added a note on a work around
   - Added note to a work around for a problem with multiple timers
