@@ -24,6 +24,7 @@
     "url": "https://github.com/linuxha/node-red-contrib-mytimeout/issues"
   },
   "node-red": {
+    "version": ">=1",
     "nodes": {
       "mytimeout": "mytimeout.js"
     }
