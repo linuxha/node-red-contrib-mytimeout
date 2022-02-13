@@ -79,7 +79,7 @@ module.exports = function(RED) {
         var ignoreCase  = '';
 
         var line        = {};
-        var version     = '3.2.0'; //
+        var version     = '3.2.3'; //
 
         RED.nodes.createNode(this, n);
 

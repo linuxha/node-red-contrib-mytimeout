@@ -11,7 +11,7 @@ helper.init(require.resolve('node-red'));
 
 var nom =  'MyTimeout';
 
-describe('* 0030 - Complex pause test case for mytimeout Node (Dummy - WIP)', function () {
+describe('* 0040 - Complex no on test case for mytimeout Node (Dummy - WIP)', function () {
 
   beforeEach(function (done) {
     helper.startServer(done);

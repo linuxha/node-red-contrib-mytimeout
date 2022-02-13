@@ -83,7 +83,7 @@ describe('* 9999 - X Promise tests', function () {
     try {
       helper.load(myNode, flow, function () {
         try {
-          (false).should.be.true();  // this will caise this test case to fail (and pass)
+          (false).should.be.true();  // this will cause this test case to fail (and pass)
           //(true).should.be.true(); // This will cause this test case to succeed (and not pass)
           done("Nuts, should have failed!"); // If we get this, test case fails
         } catch(err) {
@@ -99,6 +99,7 @@ describe('* 9999 - X Promise tests', function () {
   });
   /* */
 
+  
   it('TC03 - should fail and I should catch it', function(done) {
     let promise = getFailingPromise();
     promise.catch(function(err) {
@@ -121,7 +122,7 @@ describe('* 9999 - X Promise tests', function () {
   });
   /* */
 
-  // sleep 3; mosquitto_pub -t 'home/test/mytimeout' -m '{"payload": "on", "timeout": 2, "warning": 1, "TestNo":"'0002'" }'
+  // sleep 3; mosquitto_pub -t 'home/test/mytimeout' -m '{"payload": "on", "timeout": 2, "warning": 1, "TestNo":"'S0002'" }'
   /* */
   //
   // ===========================================================================================

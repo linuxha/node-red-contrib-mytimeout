@@ -11,7 +11,9 @@ helper.init(require.resolve('node-red'));
 
 var nom =  'MyTimeout';
 
-describe('* 0030 - Complex pause test case for mytimeout Node (Dummy - WIP)', function () {
+// Need test coverage for brammh/Bugfix-#16---topic-name-included-in-control-messages
+// I think I'm currently only coded for th eon message so more code may be needed
+describe('* 0040 - Complex topic test cases for mytimeout Node (Dummy - WIP)', function () {
 
   beforeEach(function (done) {
     helper.startServer(done);
