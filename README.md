@@ -97,7 +97,7 @@ If the timer is not currently running and a **stop** or **cancel** is sent to th
 }
 ```
 
-This is a new feature to 4.0.0 where sending a pause will cause the timer to suspend counting down. @FIXME: how do we unpause?
+This is a new feature to 4.0.0 where sending a pause will cause the timer to suspend counting down. Sending a second pause or suspend will unpause. @FIXME: This needs more thought
 
 ## Special handling
 

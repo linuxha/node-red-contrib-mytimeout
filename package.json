@@ -24,12 +24,6 @@
     "url": "https://github.com/linuxha/node-red-contrib-mytimeout/issues"
   },
   "node-red": {
-    "version": ">=1",
-    "nodes": {
-      "mytimeout": "mytimeout.js"
-    }
-  },
-  "node-red": {
     "version": ">=1"
   },
   "engines": {
@@ -43,6 +37,7 @@
     "mocha": "^8.2.1",
     "nock": "^13.0.5",
     "node-red": "^1.2.7",
+    "node-red-contrib-mytimeout": "^3.2.2",
     "node-red-node-test-helper": "^0.2.5",
     "pkg.json": "^2.0.8",
     "should": "^13.2.3"

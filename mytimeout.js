@@ -21,7 +21,7 @@
 //  }
 //
 //  {
-//    "payload": <Don't care> 
+//    "payload": <Don't care>
 //  }
 //
 // The above gets treated as an on condition
@@ -73,10 +73,10 @@ module.exports = function(RED) {
         var ticks       = -1;           //
         var lastPayload = Date.now();;  // 
         var pauseValue  = null;         // Feature: pause
-        var tick        = null;         // Feature: pause
+        var tixID       = null;         // Feature: pause
 
-        var timeout     = parseInt(n.timer||30);    // 
-        var warn        = parseInt(n.warning||10);  // 
+        var timeout     = parseInt(n.timer||30);    //
+        var warn        = parseInt(n.warning||10);  //
 
         var ignoreCase  = '';
 
@@ -106,7 +106,7 @@ module.exports = function(RED) {
 
         */
         node.name      = n.name;               // node-input-name       - Name
-        node.warning   = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
+        node.warning   = parseInt(n.warning||5);// node-input-warning   - time in seconds (?)
         node.topic     = n.outtopic;           // node-input-outtopic   - Output topic
         node.outsafe   = n.outsafe;            // node-input-outsafe    - Timer on payload
         node.outwarn   = n.outwarning;         // node-input-outwarning - Warning state payload
@@ -205,7 +205,12 @@ module.exports = function(RED) {
             }
 
             state = 'run';
-
+            if (tixID !== null) {
+              clearInterval(tixID);
+                tixID = null;
+            }
+            startInterval();
+            
             wflag = false;      // rest the warning flag
         } // on(msg)
 
@@ -276,6 +281,10 @@ module.exports = function(RED) {
                     break;
             }
 
+            if (tixID !== null) {
+                clearInterval(tixID);
+                tixID = null;
+            }
             state = 'stop';
             ticks = -1;
             timeout = parseInt(node.timer);
@@ -291,6 +300,9 @@ module.exports = function(RED) {
             pauseValue = null;
         }
 
+        /*
+        ** What is being sent here as the message
+        */
         function pause(susp) {
             var suspend = susp.payload == "suspend" ? true : false;
             ndebug("pause function!");
@@ -308,10 +320,10 @@ module.exports = function(RED) {
             lastPayload = msg.payload;
 
             state = 'pause';
-            if (tick !== null && !suspend) {
+            if (tixID !== null && !suspend) {
                 var tremain = { "payload": ticks, "state": 0, "flag": "pause"};
-                clearInterval(tick);
-                tick = null;
+                clearInterval(tixID);
+                tixID = null;
             }
             node.send([msg, tremain]);
         }
@@ -330,7 +342,7 @@ module.exports = function(RED) {
             ndebug("doNothing!");
             state = 'stop';
             ticks = -1;
-            pauseValue  = null;
+            pauseValue  = null; // I think this needs to be here
         }
 
         // @TODO: This should return the original msg with as few changes as possible
@@ -393,16 +405,25 @@ module.exports = function(RED) {
         }
 
         // Leave this here, need the functions ref from above
+        // states[state][line.payload](line); // function call to line.payload(line)
+        // <state>:<function>
+        // on: on
+        // pause: pause
+        // suspend: pause
+        // maybe wait/cont
+        // definitely pause/unpause but this seems to come with a true false (???)
+        // definitely suspend/restore
         var states = {
             // Not sure if this is what I want in the long run but this is good for now
-            stop: { 0: off, on: on, off: off, stop: doNothing, cancel: doNothing }, 
-            run:  { 0: off, on: on, off: off, stop: stop, cancel: cancel }
+            stop: { 0: off, on: on, pause: on, suspend: off, off: off, stop: doNothing, cancel: doNothing },
+            pause: { 0: off, on: on, pause: unpause, suspend: unpause, off: off, stop: stop, cancel: cancel },
+            run:  { 0: off, on: on, pause: pause, suspend: pause, off: off, stop: stop, cancel: cancel }
         };
 
         // -------------------------------------------------------------------------------
         // Commands
         // TIX
-        node.on("TIX", function(inMsg) {
+        node.on("TIX", function(inMsg) { // old has , state)
             lastPayload = Date.now();
             var msg = {};
 
@@ -443,7 +464,8 @@ module.exports = function(RED) {
                     var tremain = { "payload": ticks, "state": 1, "flag": "ticks > 0"};
                     node.send([null, tremain]);
                 }
-                ticks--;
+
+                state !== "pause" ? ticks-- : '';
             } else if(ticks == 0) {
                 ndebug("ticks == 0");
                 stop("off");
@@ -459,6 +481,7 @@ module.exports = function(RED) {
 
         // Stop         (initial state at start up and when not running)
         // On           (timer reset to default value and running, on sent)
+        // Pause        (timer retains value, return to Stop)
         // Off          (timer off, off sent, return to Stop)
         // Cancel       (timer off, nothing sent, return to Stop)
         // Warning      (timer still on, warning sent)
@@ -497,7 +520,7 @@ module.exports = function(RED) {
             // then drop it
             // If the timer goes off then the lastPayload should be cleared
 
-            // We only send a simple message ('on', 'off', 'stop' or 'cancel')
+            // We only send a simple message ('on', 'pause', 'off', 'stop' or 'cancel')
             var regex = new RegExp('^' + lastPayload + '$', ignoreCase);
             //if(lastPayload === inMsg.payload) {
             if(regex.test(inMsg.payload)) {
@@ -513,7 +536,7 @@ module.exports = function(RED) {
             } catch (err) {
                 // Basically treat the unknown payload as an on (i.e. anything can
                 // tickle the timer as long as it's not off, 0, stop or cancel)
-                node.warn("L477: newMsg(inMsg): " + err + " <" + JSON.stringify(inMsg) + ">");
+                node.warn("L528: newMsg(inMsg): " + err + " <" + JSON.stringify(inMsg) + ">");
             }
             ndebug("line = " + JSON.stringify(line));
 
@@ -551,8 +574,8 @@ module.exports = function(RED) {
                 // Anything that is not an existing state/function is treated as
                 // an on request.
                 // =============================================================
-                ndebug(s  + "\" (this is not an error)");
-                ndebug("states catch: " + err + " (" + ticks + "/" + warn + " - this is not an error)");
+                ndebug(s  + " \" (this is not an error)");
+                ndebug("states catch: " + err + "(" + ticks + "/" + warn + " - this is not an error)");
                 // If it's not an existing state then treat it as an on
                 // that way anthing can be used as a kicker to keep the timer
                 // running
@@ -563,14 +586,17 @@ module.exports = function(RED) {
 
         // Once the node is instantiated this keeps running
         // I'd like to change this to run when only needed
-        var tick = setInterval(function() {
-            var msg = { payload:'TIX', topic:""};
-            node.emit("TIX", msg);
-        }, 1000); // trigger every 1 sec
-
+        // Once the node is instantiated this only runs on call on()
+        function startInterval() {
+          var msg = { payload:'TIX', topic:""};
+          node.emit("TIX", msg, state);
+          tixID = setInterval(function() {
+              node.emit("TIX", msg, state);
+          }, 1000); // trigger every 1 sec
+        }
         node.on("close", function() {
-            if (tick) {
-                clearInterval(tick);
+            if (tixID !== null) {
+                clearInterval(tixID);
             }
         });
 
