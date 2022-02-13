@@ -71,7 +71,9 @@ module.exports = function(RED) {
         var state       = 'stop';
         var wflag       = false;
         var ticks       = -1;           //
-        var lastPayload = Date.now();;   // 
+        var lastPayload = Date.now();;  // 
+        var pauseValue  = null;         // Feature: pause
+        var tick        = null;         // Feature: pause
 
         var timeout     = parseInt(n.timer||30);    // 
         var warn        = parseInt(n.warning||10);  // 
@@ -79,7 +81,7 @@ module.exports = function(RED) {
         var ignoreCase  = '';
 
         var line        = {};
-        var version     = '3.2.3'; //
+        var version     = '4.0.0'; //
 
         RED.nodes.createNode(this, n);
 
@@ -104,7 +106,7 @@ module.exports = function(RED) {
 
         */
         node.name      = n.name;               // node-input-name       - Name
-        node.warning     = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
+        node.warning   = parseInt(n.warning)||5;// node-input-warning    - time in seconds (?)
         node.topic     = n.outtopic;           // node-input-outtopic   - Output topic
         node.outsafe   = n.outsafe;            // node-input-outsafe    - Timer on payload
         node.outwarn   = n.outwarning;         // node-input-outwarning - Warning state payload
@@ -286,12 +288,49 @@ module.exports = function(RED) {
             ndebug("cancel!");
             stop('cancel');
             ticks = -1;
+            pauseValue = null;
+        }
+
+        function pause(susp) {
+            var suspend = susp.payload == "suspend" ? true : false;
+            ndebug("pause function!");
+            pauseValue = [ticks, node.warnT];
+
+            timeout = ticks;
+            var msg = line;
+            node.status({
+                fill  : "grey",
+                shape : "dot",
+                text  : `Paused: ${ticks}` // provide a visual countdown
+            });
+
+            msg.payload = "pause";
+            lastPayload = msg.payload;
+
+            state = 'pause';
+            if (tick !== null && !suspend) {
+                var tremain = { "payload": ticks, "state": 0, "flag": "pause"};
+                clearInterval(tick);
+                tick = null;
+            }
+            node.send([msg, tremain]);
+        }
+
+        function unpause(msg) {
+            ndebug("unpause!");
+
+            var pausemsg = {
+                timeout: pauseValue[0],
+                warning: pauseValue[1]
+            }
+            on(pausemsg);
         }
 
         function doNothing() {
             ndebug("doNothing!");
             state = 'stop';
             ticks = -1;
+            pauseValue  = null;
         }
 
         // @TODO: This should return the original msg with as few changes as possible

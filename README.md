@@ -90,6 +90,15 @@ These will stop the timer. See above for the output description.
 If the node property 'Warning state payload' is not set in the edit node dialog or the property 'Warning (sec)' is set to 0, then no warning message will be sent.
 
 If the timer is not currently running and a **stop** or **cancel** is sent to the timer, no output will be sent. An **on** will trigger the timer to begin running. If an **off** is sent while the timer is not running, an off message will be sent.
+
+```
+{
+    "payload": "pause"
+}
+```
+
+This is a new feature to 4.0.0 where sending a pause will cause the timer to suspend counting down. @FIXME: how do we unpause?
+
 ## Special handling
 
 ### MQTT
