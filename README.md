@@ -97,7 +97,7 @@ If the timer is not currently running and a **stop** or **cancel** is sent to th
 }
 ```
 
-This is a new feature to 4.0.0 where sending a pause will cause the timer to suspend counting down. Sending a second pause or suspend will unpause. @FIXME: This needs more thought
+This is a new feature to 4.0.0 where sending a "pause" will cause the timer to suspend counting down. Sending a "continue", "suspend" will unpause.
 
 ## Special handling
 
@@ -232,7 +232,10 @@ Actual output:
 I put together a [sample flow](https://flows.nodered.org/flow/a391edfb38b959122d2dd42242ddd950) that should help with using the node.
 
 ## Notes on usage
-One user setup 12 timers in one flow and began having issues (currently being investigated) with timers being left in the on state but not running. He moved each timer to it's own flow and gave each timer a unique name. I'm not sure if this is a usable work around but hope to test this soon.
+One user setup 12 timers in one flow and began having issues (currently being investigated) with timers being left in the on state but not running. He moved each timer to it's own flow and gave each timer a unique name. I'm not sure if this is a usable work around but hope to test this soon. I'm pretty sure I've improved the code since then.
+
+# Testing
+If you want to run tests you'll need to do a devdependencies install. (@TODO: WIP)
 
 # Credits
 - Pete Scargill (the original timeout node and Big Timer)
