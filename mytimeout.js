@@ -190,7 +190,7 @@ module.exports = function(RED) {
             node.status({
                 fill  : "green",
                 shape : "dot",
-                text  : "Running: " + ticks // provide a visual countdown
+                text  : `Running: ${ticks}` // provide a visual countdown
             });
 
             // @Feature: no on msg
@@ -228,7 +228,7 @@ module.exports = function(RED) {
             // The states are only called from the node.on("input", ...)
             // That's where I define the line obj after I massage the incoming
             // message
-            var msg = line;     // This is a biy of a risk, I'll leave it for now
+            var msg = line;     // This is a bit of a risk, I'll leave it for now
             // if the main input routine calls this function, it will pass an
             // object (the input msg) which we don't care about really
             if(typeof(s) !== "string") {
@@ -242,7 +242,7 @@ module.exports = function(RED) {
             node.status({
                 fill  : "red",
                 shape : "dot",
-                text  : "Stopped: " + s // provide a visual countdown
+                text  : `Stopped: ${s}` // provide a visual countdown
             });
 
             // Stop or off can send, not cancel
@@ -302,16 +302,17 @@ module.exports = function(RED) {
 
         /*
         ** What is being sent here as the message
+        ** @FIXME: Suspend looks very weird here. what message are we sending?
         */
         function pause(susp) {
-            var suspend = susp.payload == "suspend" ? true : false;
+            var suspend = susp.payload == "suspend" ? true : false; // ???
             ndebug("pause function!");
-            pauseValue = [ticks, node.warnT];
+            pauseValue = [ticks, node.warning]; // was warnT
 
             timeout = ticks;
             var msg = line;
             node.status({
-                fill  : "grey",
+                fill  : "cyan", // grey is the default, uninitialized
                 shape : "dot",
                 text  : `Paused: ${ticks}` // provide a visual countdown
             });
@@ -321,14 +322,14 @@ module.exports = function(RED) {
 
             state = 'pause';
             if (tixID !== null && !suspend) {
-                var tremain = { "payload": ticks, "state": 0, "flag": "pause"};
+                var tremain = { "payload": ticks, "state": 3, "flag": "pause"};
                 clearInterval(tixID);
                 tixID = null;
             }
             node.send([msg, tremain]);
         }
 
-        function unpause(msg) {
+        function unpause(msg) { // ... because we can't call it continue
             ndebug("unpause!");
 
             var pausemsg = {
@@ -409,21 +410,26 @@ module.exports = function(RED) {
         // <state>:<function>
         // on: on
         // pause: pause
-        // suspend: pause
-        // maybe wait/cont
-        // definitely pause/unpause but this seems to come with a true false (???)
-        // definitely suspend/restore
+        // suspend: unpause
         var states = {
             // Not sure if this is what I want in the long run but this is good for now
-            stop: { 0: off, on: on, pause: on, suspend: off, off: off, stop: doNothing, cancel: doNothing },
-            pause: { 0: off, on: on, pause: unpause, suspend: unpause, off: off, stop: stop, cancel: cancel },
-            run:  { 0: off, on: on, pause: pause, suspend: pause, off: off, stop: stop, cancel: cancel }
+            stop:  { 0: off, on: on, off: off, pause: on,      suspend: off,     continue: off,       stop: doNothing, cancel: doNothing },
+            pause: { 0: off, on: on, off: off, pause: unpause, suspend: unpause, continue: unpause,   stop: stop,      cancel: cancel },
+            run:   { 0: off, on: on, off: off, pause: pause,   suspend: pause,   continue: doNothing, stop: stop,      cancel: cancel }     // @FIXME: Suspend ???
         };
 
+        // thse nstates are not directly related to the above, rather more like an enum
+        // Okay it is related to the above but we have no warning as its still just run
+        var nstates = {
+            "stop":  0,
+            "run":   1,
+            "warn":  2,
+            "pause": 3
+        };
         // -------------------------------------------------------------------------------
         // Commands
         // TIX
-        node.on("TIX", function(inMsg) { // old has , state)
+        node.on("TIX", function(inMsg, state) { // old has , state)
             lastPayload = Date.now();
             var msg = {};
 
@@ -436,7 +442,7 @@ module.exports = function(RED) {
                         node.status({
                             fill  : "yellow",
                             shape : "dot",
-                            text  : "Warning: " + ticks // provide a visual countdown
+                            text  : `Warning: ${ticks}` // provide a visual countdown
                         });
 
                         if(!wflag) {
@@ -458,7 +464,7 @@ module.exports = function(RED) {
                     node.status({
                         fill  : "green",
                         shape : "dot",
-                        text  : "Running: " + ticks // provide a visual countdown
+                        text  : `Running: ${ticks}` // provide a visual countdown
                     });
 
                     var tremain = { "payload": ticks, "state": 1, "flag": "ticks > 0"};
@@ -558,31 +564,9 @@ module.exports = function(RED) {
                 on(line);
             }
 
-            /* This is handled in newMsg(msg) above
-            try {
-                if(typeof(line.payload) == 'string') {
-                    s = ("1 states catch: line \"" + line.payload);
-                    states[state][line.payload](line);
-                } else {
-                    // Hopefully I've converted all the input to a string and
-                    // to lower case.
-                    s = ("2 states catch: line  \"" + line.payload.payload);
-                    states[state][line.payload.payload](line);
-                }
-            } catch(err) {
-                // =============================================================
-                // Anything that is not an existing state/function is treated as
-                // an on request.
-                // =============================================================
-                ndebug(s  + " \" (this is not an error)");
-                ndebug("states catch: " + err + "(" + ticks + "/" + warn + " - this is not an error)");
-                // If it's not an existing state then treat it as an on
-                // that way anthing can be used as a kicker to keep the timer
-                // running
-                on(line);
-            } /* */
-// ================================================================================
         }); // node.on("input", ... )
+
+        // ================================================================================
 
         // Once the node is instantiated this keeps running
         // I'd like to change this to run when only needed
