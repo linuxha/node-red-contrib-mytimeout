@@ -413,7 +413,7 @@ module.exports = function(RED) {
         // suspend: unpause
         var states = {
             // Not sure if this is what I want in the long run but this is good for now
-            stop:  { 0: off, on: on, off: off, pause: on,      suspend: off,     continue: off,       stop: doNothing, cancel: doNothing },
+            stop:  { 0: off, on: on, off: off, pause: on,      suspend: off,     continue: doNothing, stop: doNothing, cancel: doNothing },
             pause: { 0: off, on: on, off: off, pause: unpause, suspend: unpause, continue: unpause,   stop: stop,      cancel: cancel },
             run:   { 0: off, on: on, off: off, pause: pause,   suspend: pause,   continue: doNothing, stop: stop,      cancel: cancel }     // @FIXME: Suspend ???
         };
