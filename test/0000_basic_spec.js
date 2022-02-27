@@ -1623,7 +1623,7 @@ describe('* 0000 - Basic mytimeout Node', function () {
 
       timeOutID = setTimeout(function() {
         //
-        // This is what we should get
+        // This is what we should get (cmnds[]/ticks[])
         //
         try {
           cmnds.should.have.lengthOf(3);
