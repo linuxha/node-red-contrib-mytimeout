@@ -4,30 +4,34 @@
 
 * Purpose
 
-Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending it input. It will run until the timer runs out where it will turn off. It can be turned off, stopped or cancelled with the correct input. It can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue to run. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input.
+Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending it input. It will run until the timer runs out where it will turn off. It can be paused, turned off, stopped or cancelled with the correct input. It can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue (restarted) to run. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input.
 
 Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the input matches the previously sent output, the message is ignored to avoid an endless loop. But be careful, it the message sent is modified and does not match the previous message sent, then the message will be sent and loops will occur. This will cause node-red to become totally unresponsive.
 
 * Requirements
 
 1. node-red-contrib-mytimeout (mytimeout) is a countdown timer
-2. mytimeout can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue to run.
+2. mytimeout has 1 input and 2 outputs
+   1. output 1 is the commands output, on/off/stop etc. are sent here
+   2. outout 2 is the ticks output and returns the ticks (seconds) information, expect when paused
+3. Send an "on" message and the timer restarts to either it's default timer settings or to the override values in the message.
+4. mytimeout can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue to run.
    1. what about no payload, is that possible?
    2. Define 'junk'
    3. what are the exceptions?
-3. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input. This restarts mytimeout
-4. mytimeout has 2 outputs, the command output and the ticks output
-5. the commands output contains the commands issued by the timer (on/off/warn/stop/cancel(?) cancel maybe silent on cmds output)
-6. the ticks output contains the running state of the timer and addition information
-7. mytimeout is triggered by sending it an input, when turned on it will send an on-msg
-   1. except when the payload is '' (blank), then the on-msg won't be sent but the timer will start. *Need a Note here*
-8. mytimeout will run until the timer times out when it sends an off-msg (unless a stop or cancel message has been sent)
-9. at a preset time a warn-msg will be sent (if set)
-10. the timer can be turned off, stopped or cancelled and the appropriate message will be sent
-11. Must be able to use the same topic to subscribe and publish on without resending the same message (positive feedback). If the input matches the previously sent commands output, the message is ignored to avoid an endless loop.
-12. An empty Warning state payload entry (reword this) or warning seconds will cause mytimeout to skip sending the warning message
-13. An empty Timer On payload will cause mytimeout to start/restart the time but not send the on command, mytimeout can still send the warning (if so set) and off commands. Ticks output will still occur.
-14. Convert float values to int (round up, round down ???)
+5. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input. This restarts mytimeout
+6. mytimeout has 2 outputs, the command output and the ticks output
+7. the commands output contains the commands issued by the timer (on/off/warn/pause/stop/cancel(?) cancel maybe silent on cmds output)
+8. the ticks output contains the running state of the timer and addition information
+9. mytimeout is triggered by sending it an input, when turned on it will send an on-msg
+   1. except when the payload is '' (blank, not null?), then the on-msg won't be sent but the timer will start. *Need a Note here*
+10. mytimeout will run until the timer times out when it sends an off-msg (unless a stop or cancel message has been sent)
+11. at a preset time a warn-msg will be sent (if set, can be overridden)
+12. the timer can be turned off, paused, stopped or cancelled and the appropriate message will be sent
+13. Must be able to use the same topic to subscribe and publish on without resending the same message (positive feedback). If the input matches the previously sent commands output, the message is ignored to avoid an endless loop.
+14. An empty Warning state payload entry (reword this) or empty warning seconds (0?) will cause mytimeout to skip sending the warning message
+15. An empty Timer On payload (blank, not null?) will cause mytimeout to start/restart the time but not send the on command, mytimeout can still send the warning (if so set) and off commands. Ticks output will still occur.
+16. Convert float values to int (round up, round down ???)
 
 * Test cases
 
@@ -574,11 +578,11 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 
 * Future requirements
 
-1. add support for pause
+1. add support for pause (WIP)
 2. add support for {{mustache}} in HTML config (see template core and testing code)
-3. add support for copying the rest of the incoming message to both outputs
+3. add support for copying the rest of the incoming message to both outputs (WIP, implimented?)
 4. add support for inverted logic
-5. make sure the topic flows through
+5. make sure the topic flows through (WIP, implimented?)
 
 * Commands - Incoming message structure
 
@@ -591,15 +595,18 @@ or
 #+end_src
 
 - payload
-  - '1'      -
-  - 'on'     -
-  - '0'      -
-  - 'off'    -
-  - 'stop'   -
-  - 'cancel' -
-  - 'pause'  -
-  - junk     - really need to properly define this
-  - blank    - need to define this
+  - '1'        - This is currently no hard coded
+  - 'on'       - This is currently hard coded
+  - '0'        - This is currently hard coded
+  - 'off'      - This is currently hard coded
+  - 'stop'     - stops the timer, issues a stop command
+  - 'cancel'   - stops the timer, issues no command
+  - 'pause'    - Need to better understand these requirements ???
+  - 'continue' - Only restores timer from pause
+  - 'suspend'  - Need to better understand these requirements ???
+  - junk       - really need to properly define this
+  - blank      - Restarts timer, does not send an on command
+  - null       - ???, treat like blank
 
 * ticks format
 ** states
@@ -627,6 +634,11 @@ or
 * Notes
 
 ** CLI commands
+
+# Run an individual test
+mocha --exit "test/0030_pause_spec.js"
+# Run all the tests
+npm run test
 
 tput clear; npm test ; ps ax | egrep node-red | egrep -v grep
 
@@ -960,6 +972,706 @@ Ticks Err: AssertionError: expected Array [
 
 
   28 passing (2m)
+
+* Current results
+
+#+Name: npm run test
+#+begin_src bash :results drawer
+(
+echo -e "###\n### $(date)\n###"
+cd ~/dev/git/mytimeout
+npm run test
+echo -e "###\n### Returned: $?\n###"
+true
+) 2>&1 
+#+end_src
+
+#+RESULTS: npm run test
+:results:
+###
+### Sun 27 Feb 2022 10:03:37 AM EST
+###
+
+> node-red-contrib-mytimeout@3.2.3 pretest
+> eslint *.js
+
+
+> node-red-contrib-mytimeout@3.2.3 test
+> mocha --exit "test/*_spec.js"
+
+
+
+  * 0000 - Basic mytimeout Node
+    ✓ TC00 - should be loaded
+    ✓ TC01 - timed on, minimal time (2/1), TX on (4009ms)
+    ✓ TC02 - stop, should be timed, TX stop (2006ms)
+    ✓ TC03 - cancel, should be timed, TX cancel (2006ms)
+    ✓ TC04 - Test with empty payload "" and no warning msg, TX "" (4008ms)
+    ✓ TC05 - Should turn off, Tx off (2007ms)
+    ✓ TC06 - Should turn off, Tx 0 (2007ms)
+    ✓ TC06 - Should turn off, Tx "0" (4006ms)
+    ✓ TC07 - Should on with no warning (warning value as an integer), Tx on (4008ms)
+    ✓ TC11 - Should turn on/on, Tx on (7008ms)
+    ✓ TC11a- Should turn on/'' with warning, Tx on  (7010ms)
+    ✓ TC11b- Should turn on/'' with no warning, Tx on  (7010ms)
+    ✓ TC15 - Should turn on then off, Tx on (3011ms)
+    ✓ TC16 - Should turn on then stop, Tx on (3008ms)
+    ✓ TC19 - Should turn on then cancel, Tx on (3012ms)
+    ✓ TCxx - Should turn on 2 Tx 1
+    ✓ TC20?- Should turn on 2, complex Tx 1 (4008ms)
+    ✓ TC21 - Should turn on, Tx "0" (4007ms)
+    ✓ TC21a- Should turn normal on/off, Tx on w/floats (5012ms)
+    ✓ TC23 - Should turn on/on (2nd no payload), Tx on - TC xx (13020ms)
+    ✓ TC24 - Should turn on with junk, Tx junk (5010ms)
+    ✓ TC25 - Should turn on with junk with no outwarning (''), Tx junk (5010ms)
+    ✓ TC26 - Should turn on with junk with outwarning not defined & warning (0), Tx junk (5011ms)
+    ✓ TC27 - Should turn on with junk with outwarning & warning defined, Tx junk & warning 0 (5013ms)
+
+  * 0010 - Complex on test case for mytimeout Node
+    ✓ TC01 - Dummy, should be true
+
+  * 0020 - Complex off test case for mytimeout Node
+    ✓ TC01 - Dummy, should be true
+
+  * 0030 - Complex pause test case for mytimeout Node
+Sent in n1 {"payload":"on","extra":"extra1","testCase":"0001","t":1645974319005}
+Sent in n3 {"payload":"pause","extra":"extra1","testCase":"0001","t":1645974320007}
+Sent in TO {"payload":"suspend","extra":"extra1","testCase":"0001","t":1645974321006}
+    ✓ TC01 - Should turn on/pause/suspend, Tx on/pause/suspend (13011ms)
+Sent in n1 {"payload":"on","extra":"extra1","testCase":"0002","t":1645974332025}
+Sent in n3 {"payload":"pause","extra":"extra1","testCase":"0002","t":1645974333026}
+Sent in TO {"payload":"continue","extra":"extra1","testCase":"0002","t":1645974334026}
+    ✓ TC02 - Should turn on/pause/continue, Tx on/pause/continue (13006ms)
+Sent in n1 {"payload":"on","extra":"extra1","testCase":"0003","t":1645974345043}
+Sent in n3 {"payload":"pause","extra":"extra1","testCase":"0003","t":1645974346045}
+Sent in TO {"payload":"pause","extra":"extra1","testCase":"0003","t":1645974347045}
+Cmnds Err: AssertionError: expected Array [
+  Object {
+    payload: 'on',
+    extra: 'extra1',
+    testCase: '0003',
+    t: 1645974345044,
+    _msgid: '29dfee28.84e812'
+  },
+  Object {
+    payload: 'pause',
+    extra: 'extra1',
+    testCase: '0003',
+    t: 1645974346046,
+    _msgid: '3131e5ba.1825ba'
+  }
+] to have property length of 4 (got 2) (9/_)
+Cmnds Err: AssertionError: expected Array [
+  Object {
+    payload: 'on',
+    extra: 'extra1',
+    testCase: '0003',
+    t: 1645974345044,
+    _msgid: '29dfee28.84e812'
+  },
+  Object {
+    payload: 'pause',
+    extra: 'extra1',
+    testCase: '0003',
+    t: 1645974346046,
+    _msgid: '3131e5ba.1825ba'
+  }
+] to have property length of 4 (got 2) (9/_)
+Sent:  [
+  {
+    "payload": "on",
+    "extra": "extra1",
+    "testCase": "0003",
+    "t": 1645974345044,
+    "_msgid": "29dfee28.84e812"
+  },
+  {
+    "payload": "pause",
+    "extra": "extra1",
+    "testCase": "0003",
+    "t": 1645974346046,
+    "_msgid": "3131e5ba.1825ba"
+  },
+  {
+    "payload": "pause",
+    "extra": "extra1",
+    "testCase": "0003",
+    "t": 1645974347045,
+    "_msgid": "2c62f62e.988faa"
+  }
+]
+Cmnds: [
+  {
+    "payload": "on",
+    "extra": "extra1",
+    "testCase": "0003",
+    "t": 1645974345044,
+    "_msgid": "29dfee28.84e812"
+  },
+  {
+    "payload": "pause",
+    "extra": "extra1",
+    "testCase": "0003",
+    "t": 1645974346046,
+    "_msgid": "3131e5ba.1825ba"
+  }
+]
+Ticks: [
+  {
+    "payload": 9,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "e6244f2e.e83b7",
+    "t": 1645974345044
+  },
+  {
+    "payload": 8,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "bb17789.89b1088",
+    "t": 1645974346045
+  },
+  {
+    "payload": 7,
+    "state": 3,
+    "flag": "pause",
+    "_msgid": "3131e5ba.1825ba",
+    "t": 1645974346046
+  }
+]
+    1) TC03 - Should turn on/pause/pause, Tx on/pause x2
+Sent in n1 {"payload":"on","extra":"extra1","testCase":"0004","t":1645974358072}
+Sent in n3 {"payload":"suspend","extra":"extra1","testCase":"0004","t":1645974359074}
+Sent in TO {"payload":"suspend","extra":"extra1","testCase":"0004","t":1645974360074}
+Ticks Err: AssertionError: expected Array [
+  Object {
+    payload: 9,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '28c7fac2.bd2036',
+    t: 1645974358073
+  },
+  Object {
+    payload: 8,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: 'f011688.132cc98',
+    t: 1645974359074
+  },
+  Object {
+    payload: 7,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: 'e7dfcf2c.32ae8',
+    t: 1645974360075
+  },
+  Object {
+    payload: 6,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '84984269.e5cee',
+    t: 1645974361076
+  },
+  Object {
+    payload: 5,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '8bae71d2.47ebb',
+    t: 1645974362077
+  },
+  Object {
+    payload: 4,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '7b62c4e9.2e7f0c',
+    t: 1645974363078
+  },
+  Object {
+    payload: 3,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: 'd9f47852.9775a8',
+    t: 1645974364080
+  },
+  Object {
+    payload: 2,
+    state: 2,
+    flag: 'warn >= ticks',
+    _msgid: 'c31cd6c3.515928',
+    t: 1645974365081
+  },
+  Object {
+    payload: 1,
+    state: 2,
+    flag: 'warn >= ticks',
+    _msgid: '29e14266.e9e21e',
+    t: 1645974366082
+  },
+  Object {
+    payload: 0,
+    state: 0,
+    flag: 'off',
+    _msgid: '57f2e6fe.4f72d8',
+    t: 1645974367083
+  }
+] to have property length of 11 (got 10)
+Sent:  [
+  {
+    "payload": "on",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974358073,
+    "_msgid": "6457dcf2.a52ba4"
+  },
+  {
+    "payload": "pause",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974359074,
+    "_msgid": "26205604.a732ea"
+  },
+  {
+    "payload": "off",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974367083,
+    "_msgid": "57f2e6fe.4f72d8"
+  }
+]
+Cmnds: [
+  {
+    "payload": "on",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974358073,
+    "_msgid": "6457dcf2.a52ba4"
+  },
+  {
+    "payload": "pause",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974359074,
+    "_msgid": "26205604.a732ea"
+  },
+  {
+    "payload": "warning",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974365081,
+    "_msgid": "57f2e6fe.4f72d8"
+  },
+  {
+    "payload": "off",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974367083,
+    "_msgid": "57f2e6fe.4f72d8"
+  }
+]
+Ticks: [
+  {
+    "payload": 9,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "28c7fac2.bd2036",
+    "t": 1645974358073
+  },
+  {
+    "payload": 8,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "f011688.132cc98",
+    "t": 1645974359074
+  },
+  {
+    "payload": 7,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "e7dfcf2c.32ae8",
+    "t": 1645974360075
+  },
+  {
+    "payload": 6,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "84984269.e5cee",
+    "t": 1645974361076
+  },
+  {
+    "payload": 5,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "8bae71d2.47ebb",
+    "t": 1645974362077
+  },
+  {
+    "payload": 4,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "7b62c4e9.2e7f0c",
+    "t": 1645974363078
+  },
+  {
+    "payload": 3,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "d9f47852.9775a8",
+    "t": 1645974364080
+  },
+  {
+    "payload": 2,
+    "state": 2,
+    "flag": "warn >= ticks",
+    "_msgid": "c31cd6c3.515928",
+    "t": 1645974365081
+  },
+  {
+    "payload": 1,
+    "state": 2,
+    "flag": "warn >= ticks",
+    "_msgid": "29e14266.e9e21e",
+    "t": 1645974366082
+  },
+  {
+    "payload": 0,
+    "state": 0,
+    "flag": "off",
+    "_msgid": "57f2e6fe.4f72d8",
+    "t": 1645974367083
+  }
+]
+Cmnds Err: AssertionError: expected Array [
+  Object {
+    payload: 9,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '28c7fac2.bd2036',
+    t: 1645974358073
+  },
+  Object {
+    payload: 8,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: 'f011688.132cc98',
+    t: 1645974359074
+  },
+  Object {
+    payload: 7,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: 'e7dfcf2c.32ae8',
+    t: 1645974360075
+  },
+  Object {
+    payload: 6,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '84984269.e5cee',
+    t: 1645974361076
+  },
+  Object {
+    payload: 5,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '8bae71d2.47ebb',
+    t: 1645974362077
+  },
+  Object {
+    payload: 4,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '7b62c4e9.2e7f0c',
+    t: 1645974363078
+  },
+  Object {
+    payload: 3,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: 'd9f47852.9775a8',
+    t: 1645974364080
+  },
+  Object {
+    payload: 2,
+    state: 2,
+    flag: 'warn >= ticks',
+    _msgid: 'c31cd6c3.515928',
+    t: 1645974365081
+  },
+  Object {
+    payload: 1,
+    state: 2,
+    flag: 'warn >= ticks',
+    _msgid: '29e14266.e9e21e',
+    t: 1645974366082
+  },
+  Object {
+    payload: 0,
+    state: 0,
+    flag: 'off',
+    _msgid: '57f2e6fe.4f72d8',
+    t: 1645974367083
+  }
+] to have property length of 11 (got 10) (9/_)
+Sent:  [
+  {
+    "payload": "on",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974358073,
+    "_msgid": "6457dcf2.a52ba4"
+  },
+  {
+    "payload": "pause",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974359074,
+    "_msgid": "26205604.a732ea"
+  },
+  {
+    "payload": "off",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974367083,
+    "_msgid": "57f2e6fe.4f72d8"
+  }
+]
+Cmnds: [
+  {
+    "payload": "on",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974358073,
+    "_msgid": "6457dcf2.a52ba4"
+  },
+  {
+    "payload": "pause",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974359074,
+    "_msgid": "26205604.a732ea"
+  },
+  {
+    "payload": "warning",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974365081,
+    "_msgid": "57f2e6fe.4f72d8"
+  },
+  {
+    "payload": "off",
+    "extra": "extra1",
+    "testCase": "0004",
+    "t": 1645974367083,
+    "_msgid": "57f2e6fe.4f72d8"
+  }
+]
+Ticks: [
+  {
+    "payload": 9,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "28c7fac2.bd2036",
+    "t": 1645974358073
+  },
+  {
+    "payload": 8,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "f011688.132cc98",
+    "t": 1645974359074
+  },
+  {
+    "payload": 7,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "e7dfcf2c.32ae8",
+    "t": 1645974360075
+  },
+  {
+    "payload": 6,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "84984269.e5cee",
+    "t": 1645974361076
+  },
+  {
+    "payload": 5,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "8bae71d2.47ebb",
+    "t": 1645974362077
+  },
+  {
+    "payload": 4,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "7b62c4e9.2e7f0c",
+    "t": 1645974363078
+  },
+  {
+    "payload": 3,
+    "state": 1,
+    "flag": "ticks > 0",
+    "_msgid": "d9f47852.9775a8",
+    "t": 1645974364080
+  },
+  {
+    "payload": 2,
+    "state": 2,
+    "flag": "warn >= ticks",
+    "_msgid": "c31cd6c3.515928",
+    "t": 1645974365081
+  },
+  {
+    "payload": 1,
+    "state": 2,
+    "flag": "warn >= ticks",
+    "_msgid": "29e14266.e9e21e",
+    "t": 1645974366082
+  },
+  {
+    "payload": 0,
+    "state": 0,
+    "flag": "off",
+    "_msgid": "57f2e6fe.4f72d8",
+    "t": 1645974367083
+  }
+]
+    2) TC04 - Should turn on/suspend/suspend, Tx on/suspend x2
+
+  * 0040 - Complex no on test case for mytimeout Node (Dummy - WIP)
+    ✓ TC01 - Dummy, should be true
+
+  * 0040 - Complex topic test cases for mytimeout Node (Dummy - WIP)
+    ✓ TC01 - Dummy, should be true
+
+  * 9000 -mytimeout Node/MQTT flow test
+    ✓ TC00 - should be loaded
+
+  * 9990 - T - timeout test
+    ✓ TC01 - pass timeout test (4008ms)
+    ✓ TC03 - fail timeout test
+
+  * 9999 - X Promise tests
+    ✓ TC01 - Dummy, should be true
+    ✓ TC02 - Dummy, should be false
+    ✓ TC03 - should fail and I should catch it
+    ✓ TC04 - timed on, minimal time (2/1), TX on (4006ms)
+
+
+  37 passing (3m)
+  2 failing
+
+  1) * 0030 - Complex pause test case for mytimeout Node
+       TC03 - Should turn on/pause/pause, Tx on/pause x2:
+     AssertionError: expected Array [
+  Object {
+    payload: 'on',
+    extra: 'extra1',
+    testCase: '0003',
+    t: 1645974345044,
+    _msgid: '29dfee28.84e812'
+  },
+  Object {
+    payload: 'pause',
+    extra: 'extra1',
+    testCase: '0003',
+    t: 1645974346046,
+    _msgid: '3131e5ba.1825ba'
+  }
+] to have property length of 4 (got 2)
+      at Assertion.fail (node_modules/should/cjs/should.js:275:17)
+      at Assertion.value (node_modules/should/cjs/should.js:356:19)
+      at Timeout._onTimeout (test/0030_pause_spec.js:517:31)
+      at listOnTimeout (internal/timers.js:554:17)
+      at processTimers (internal/timers.js:497:7)
+
+  2) * 0030 - Complex pause test case for mytimeout Node
+       TC04 - Should turn on/suspend/suspend, Tx on/suspend x2:
+     AssertionError: expected Array [
+  Object {
+    payload: 9,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '28c7fac2.bd2036',
+    t: 1645974358073
+  },
+  Object {
+    payload: 8,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: 'f011688.132cc98',
+    t: 1645974359074
+  },
+  Object {
+    payload: 7,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: 'e7dfcf2c.32ae8',
+    t: 1645974360075
+  },
+  Object {
+    payload: 6,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '84984269.e5cee',
+    t: 1645974361076
+  },
+  Object {
+    payload: 5,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '8bae71d2.47ebb',
+    t: 1645974362077
+  },
+  Object {
+    payload: 4,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: '7b62c4e9.2e7f0c',
+    t: 1645974363078
+  },
+  Object {
+    payload: 3,
+    state: 1,
+    flag: 'ticks > 0',
+    _msgid: 'd9f47852.9775a8',
+    t: 1645974364080
+  },
+  Object {
+    payload: 2,
+    state: 2,
+    flag: 'warn >= ticks',
+    _msgid: 'c31cd6c3.515928',
+    t: 1645974365081
+  },
+  Object {
+    payload: 1,
+    state: 2,
+    flag: 'warn >= ticks',
+    _msgid: '29e14266.e9e21e',
+    t: 1645974366082
+  },
+  Object {
+    payload: 0,
+    state: 0,
+    flag: 'off',
+    _msgid: '57f2e6fe.4f72d8',
+    t: 1645974367083
+  }
+] to have property length of 11 (got 10)
+      at Assertion.fail (node_modules/should/cjs/should.js:275:17)
+      at Assertion.value (node_modules/should/cjs/should.js:356:19)
+      at Timeout._onTimeout (test/0030_pause_spec.js:727:31)
+      at listOnTimeout (internal/timers.js:554:17)
+      at processTimers (internal/timers.js:497:7)
+
+
+
+###
+### Returned: 2
+###
+:end:
 
 * -[ Fini ]------------------------------ ----------------------------------------
 ** Emacs Org-mode stuff

@@ -206,6 +206,7 @@ The states are:
 *  0 = off, stopped or cancel (timer not running)
 *  1 = on (timer is running)
 *  2 = warning (timer is running and in the warning period)
+*  3 = pause (timer is stoped, no further output until a continue, pause, suspend, on, off, stop or cancel is sent)
 
 If you find any other state, open an issue.
 [node-red-contrib-mytimeout Issues](https://github.com/linuxha/node-red-contrib-mytimeout/issues)
@@ -225,6 +226,10 @@ Actual output:
 * **off** - turns off the timer. This payload will cause the timer to send a *Timer off payload* in the msg.payload output
 * **stop** - stops the timer. This payload will cause the timer to send *stop* in the msg.payload output
 * **cancel** - cancels the timer. This payload will cause the timer to cancel but send no msg output
+* **pause** - Pauses the timer (the ticks stop) - has special cases
+* **continue** - Continues the timer where the pause interrupted the timer  (ticks continue)
+* **suspend** - restored the timer (ticks continue) - has special cases
+
 * If something other that the above (including no payload) it will be treated as a default **on** message. This allows messages to tickle the timer.
 
 # Sample flow
@@ -240,6 +245,7 @@ If you want to run tests you'll need to do a devdependencies install. (@TODO: WI
 # Credits
 - Pete Scargill (the original timeout node and Big Timer)
 - Colin Law (for pointing out and correcting my terminology in this Readme)
+- Alan Reader (for his pause/unpause and Tix code)
 
 # Todo
 - Force accepted values to integer
