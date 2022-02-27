@@ -33,6 +33,87 @@ Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the i
 
 These are not unit tests, I haven't figured out how to write a unit test for this node-red node. These are node functionality / itegration tests.
 
+** mocha TC format
+
+#+begin_src js
+  /* comment out TC: */
+  //
+  // ===========================================================================================
+  //
+  //("TCnn - Should ...do something... , <result> - TC xx", function (done) { // ???
+  it("TCnn - Should ...do something... , Tx on - TC xx", function (done) { // ???
+    var testCase = "00nn";
+
+    /*
+    ** TC variables (examples)
+    */
+    var timeOut = 10;
+
+    var cmnds = [];
+    var ticks = [];
+    var t = 0;
+    var c = 0;
+
+    // Flow: (got lazy and left the n1, n2, n3 names instead of using descriptive names)
+    // n1 is the input (set the mytimeout flow's default vaules)
+    // n2 is the cmnds output
+    // n3 is the ticks output
+    var flow = [
+      { id: "n1", type: "mytimeout", name: nom,
+        outsafe: On,                            /* If blank we should get no on msg */
+        outwarning: "warning",
+        outunsafe: Off,
+        timer: timeOut,
+        warning: 2,
+        debug: "0",
+        /* output: 2, */
+        wires:[["n2"], ["n3"]] },
+      { id: "n2", type: "helper" },             /* Output commands */
+      { id: "n3", type: "helper" }              /* Output state of ticks */
+    ];
+
+    helper.load(myNode, flow, function () {
+      //
+      // This is where the actual work gets done
+      //
+      var fini = 0;
+
+      // Instantiate the nodes
+      var n3 = helper.getNode("n3"); // ticks
+      var n2 = helper.getNode("n2"); // cmnds
+      var n1 = helper.getNode("n1"); // input
+
+      // Need to run the n2 & n3 until I get the last command (off) and the last tick.
+      n2.on("input", function (msg) {
+        // deal with the cmnds messages for later processing
+      }); // n2()
+
+      n3.on("input", function (msg) {
+        // deal with the ticks messages for later processing
+      }); // n3()
+
+      n1.receive({ payload: "on", extra: "extra1", testCase: testCase }); // n1()
+
+      // Timer (if needed)
+      //
+      timeOutID = setTimeout(function() {
+        //
+        // This is what we should get (check for expected cmds/ticks msgs)
+        //
+        try {
+          //
+          done(); // You need this
+        } catch(err) {
+          //
+          done(err); // You need this
+        } // try
+      }, (timeout+2)*1000); // setTimeout()
+    }); // helper()
+  
+  } // it()
+  /* */
+#+end_src
+
 ** Samples:
 *** Basic
 
@@ -497,6 +578,7 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 2. add support for {{mustache}} in HTML config (see template core and testing code)
 3. add support for copying the rest of the incoming message to both outputs
 4. add support for inverted logic
+5. make sure the topic flows through
 
 * Commands - Incoming message structure
 
@@ -859,7 +941,7 @@ Ticks Err: AssertionError: expected Array [
     ✓ TC16 - Should turn on then stop, Tx on (4010ms)
     ✓ TC19 - Should turn on then cancel, Tx on (4010ms)
     ✓ TCxx - Should turn on 2 Tx 1 (1006ms)
-    ✓ TC20?- Should turn on 2, complex Tx 1 (4007ms)
+    ✓ TC20?- Should turn on 2, complex Tx 1 (4007ms)		(**This doesn't send twice**)
     ✓ TC21a- Should turn normal on/off, Tx on w/floats (6011ms)
     ✓ TC23 - Should turn on/on (2nd no payload), Tx on - TC xx (15020ms)
     ✓ TC24 - Should turn on with junk, Tx junk (6012ms)
