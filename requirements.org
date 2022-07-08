@@ -1,10 +1,10 @@
 #+Title:	Requirements for mytimeout
 #+author:	Neil Cherry <ncherry@linuxha.com>
-#+date:		Jan. 13, 2021
+#+date:		March 9, 2022
 
 * Purpose
 
-Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending it input. It will run until the timer runs out where it will turn off. It can be paused, turned off, stopped or cancelled with the correct input. It can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue (restarted) to run. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input.
+Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending it an input. It will run until the timer runs out where it will turn off. It can be paused, turned off, stopped or cancelled with the correct input. It can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue (restarted) to run. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input.
 
 Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the input matches the previously sent output, the message is ignored to avoid an endless loop. But be careful, it the message sent is modified and does not match the previous message sent, then the message will be sent and loops will occur. This will cause node-red to become totally unresponsive.
 
@@ -549,6 +549,37 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 
 *** [ ] - TC xx - *Need* additional test cases here
 
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC xx - *Need* pause test cases here
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+New feature, pause/continue
+
+**** Test
+- x
+
+**** Expected results
+- x
+
+*** [ ] - TC xx - *Need* anti-loop test cases here
+
+- on/on
+- off/off
+- pause/pause
+- continue/continue
+- stop/stop
+- cancel/cancel
+- junk/junk
 
 **** Test
 - x
@@ -583,6 +614,8 @@ Where n1 is the input to the node, n2 is the cmnds output, and n3 is the ticks o
 3. add support for copying the rest of the incoming message to both outputs (WIP, implimented?)
 4. add support for inverted logic
 5. make sure the topic flows through (WIP, implimented?)
+6. Update support for 'done' (https://nodered.org/docs/creating-nodes/node-js#receiving-messages)
+7. Update support for error handling (https://nodered.org/docs/creating-nodes/node-js#handling-errors)
 
 * Commands - Incoming message structure
 
@@ -933,6 +966,50 @@ Ticks Err: AssertionError: expected Array [
   Object { payload:  1, state: 2, flag: 'warn >= ticks', _msgid: '5b080bb1.1be1f4' },
   Object { payload:  0, state: 0, flag: "off",           _msgid: 'dddb657f.d12eb8' }
 ] to have property length of 10 (got 15)
+
+** Tests
+
+*** basic state transitions
+
+var states = {
+    // Not sure if this is what I want in the long run but this is good for now
+    stop:  { 0: off, on: on, off: off, pause: on,      suspend: off,     continue: doNothing, stop: doNothing, cancel: doNothing },
+    pause: { 0: off, on: on, off: off, pause: unpause, suspend: unpause, continue: unpause,   stop: stop,      cancel: cancel },
+    run:   { 0: off, on: on, off: off, pause: pause,   suspend: pause,   continue: doNothing, stop: stop,      cancel: cancel }
+};
+
+- Stop to ...
+  - on
+  - off
+  - pause
+  - suspend
+  - continue
+  - stop
+  - cancel
+  - junk
+- pause to ...
+  - on
+  - off
+  - pause
+  - suspend
+  - continue
+  - stop
+  - cancel
+  - junk
+- run to ...
+  - on
+  - off
+  - pause
+  - suspend
+  - continue
+  - stop
+  - cancel
+  - junk
+
+*** Complex state transistions
+
+need to define this, it's with time settings and topics and extra fields, etc.
+
 
 * Results
 
