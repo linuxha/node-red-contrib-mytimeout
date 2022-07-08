@@ -269,14 +269,14 @@ module.exports = function(RED) {
                 case 'cancel':
                     ndebug("Send red: null");
                     var tremain = { "payload": -1, "state": 0, "flag": "cancel"};
-                    lastPayload = Date.now();
+                    lastPayload = msg.payload;
                     node.send([null, tremain]);
                     break;
 
                 default:
                     ndebug("Send red: ???");
                     var tremain = { "payload": -1, "state": 0, "flag": "unknown"};
-                    lastPayload = Date.now();
+                    lastPayload = msg.payload;
                     node.send([null, tremain]);
                     break;
             }
@@ -413,9 +413,10 @@ module.exports = function(RED) {
         // suspend: unpause
         var states = {
             // Not sure if this is what I want in the long run but this is good for now
-            stop:  { 0: off, on: on, off: off, pause: on,      suspend: off,     continue: doNothing, stop: doNothing, cancel: doNothing },
-            pause: { 0: off, on: on, off: off, pause: unpause, suspend: unpause, continue: unpause,   stop: stop,      cancel: cancel },
-            run:   { 0: off, on: on, off: off, pause: pause,   suspend: pause,   continue: doNothing, stop: stop,      cancel: cancel }     // @FIXME: Suspend ???
+            // Reason I don't have 1: is that it falls under junk
+            stop:  { 0: off, on: on, off: off, pause: on,        continue: doNothing, stop: doNothing, cancel: doNothing },
+            pause: { 0: off, on: on, off: off, pause: doNothing, continue: unpause,   stop: stop,      cancel: cancel },
+            run:   { 0: off, on: on, off: off, pause: pause,     continue: doNothing, stop: stop,      cancel: cancel }
         };
 
         // thse nstates are not directly related to the above, rather more like an enum
@@ -526,7 +527,7 @@ module.exports = function(RED) {
             // then drop it
             // If the timer goes off then the lastPayload should be cleared
 
-            // We only send a simple message ('on', 'pause', 'off', 'stop' or 'cancel')
+            // We only send a simple message ('on', 'off', 'pause', 'continue', 'stop' or 'cancel')
             var regex = new RegExp('^' + lastPayload + '$', ignoreCase);
             //if(lastPayload === inMsg.payload) {
             if(regex.test(inMsg.payload)) {
