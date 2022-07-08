@@ -1,5 +1,5 @@
 # node-red-contrib-mytimeout Readme
-Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending it input. It will run until the timer runs out where it will turn off. It can be turned off, stopped or cancelled with the correct input. It can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue to run. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input.
+Node-red-contrib-mytimeout is a countdown timer that can be trigged by sending it an input. It will run until the timer runs out where it will turn off. It can be turned off, stopped or cancelled with the correct input. It can be 'tickled' (restarted) with an on message or any other command not listed below. Meaning, if you send it junk, you have tickled the timer to continue to run. You can dynamically change the timeout and warning values by sending the appropriate Javacript object to the input.
 
 Node-red-contrib-mytimeout can send and receive to the same MQTT topic. If the input matches the previously sent output, the message is ignored to avoid an endless loop.
 
